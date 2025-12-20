@@ -11,8 +11,8 @@ import {
   useUpdateCabinetryMutation,
 } from "../../../redux/features/cabinetry/cabinetryApi";
 import toast from "react-hot-toast";
-
-const { TextArea } = Input;
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css"; // Quill styles
 
 const EditCabinetry = () => {
   const [form] = Form.useForm();
@@ -33,7 +33,7 @@ const EditCabinetry = () => {
       form.setFieldsValue({
         code: cabinet.code,
         colorName: cabinet.color,
-        description: cabinet.description,
+        description: cabinet.description, // This should be HTML string from DB
       });
       setExistingImages(cabinet.images || []);
     }
@@ -44,9 +44,9 @@ const EditCabinetry = () => {
       const formData = new FormData();
       formData.append("code", values.code);
       formData.append("color", values.colorName);
-      formData.append("description", values.description);
+      formData.append("description", values.description); 
 
-      // Add deleted images array
+      // Add deleted images
       if (deletedImages.length > 0) {
         formData.append("deletedImages", JSON.stringify(deletedImages));
       }
@@ -107,9 +107,9 @@ const EditCabinetry = () => {
               {existingImages.map((imagePath, index) => (
                 <div key={index} className="relative group">
                   <img
-                    src={`${imagePath}`}
+                    src={imagePath}
                     alt={`Cabinet ${index + 1}`}
-                    className="w-full h-32 object-cover rounded border"
+                    className="w-full h-56 object-cover rounded border"
                   />
                   <Button
                     type="primary"
@@ -180,7 +180,7 @@ const EditCabinetry = () => {
           </Form.Item>
         </div>
 
-        {/* Description */}
+        {/* Rich Text Description with React Quill */}
         <Form.Item
           label={
             <span className="text-base font-semibold">
@@ -188,12 +188,43 @@ const EditCabinetry = () => {
             </span>
           }
           name="description"
-          rules={[{ required: true, message: "Please enter description" }]}
+          rules={[
+            { required: true, message: "Please enter description" },
+            {
+              validator: (_, value) => {
+                const text = value ? value.replace(/<[^>]*>/g, "").trim() : "";
+                return text.length > 0
+                  ? Promise.resolve()
+                  : Promise.reject(new Error("Description cannot be empty"));
+              },
+            },
+          ]}
         >
-          <TextArea
-            rows={12}
+          <ReactQuill
+            theme="snow"
             placeholder="Write a description about the cabinetry..."
-            className="resize-none"
+            modules={{
+              toolbar: [
+                [{ header: [1, 2, 3, false] }],
+                ["bold", "italic", "underline"],
+                [{ list: "ordered" }, { list: "bullet" }],
+                [{ indent: "-1" }, { indent: "+1" }],
+                ["clean"],
+              ],
+            }}
+            formats={[
+              "header",
+              "bold",
+              "italic",
+              "underline",
+              "list",
+              "bullet",
+              "indent",
+            ]}
+            style={{
+              height: "320px",
+              marginBottom: "60px", // Space for toolbar + buttons
+            }}
           />
         </Form.Item>
 
@@ -211,7 +242,7 @@ const EditCabinetry = () => {
               type="primary"
               htmlType="submit"
               size="large"
-              className="bg-[#721011]"
+              className="bg-[#721011] px-8"
               loading={isLoading}
             >
               Update

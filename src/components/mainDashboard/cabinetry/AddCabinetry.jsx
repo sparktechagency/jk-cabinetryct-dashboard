@@ -4,8 +4,8 @@ import { UploadOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAddcabinetryMutation } from "../../../redux/features/cabinetry/cabinetryApi";
 import toast from "react-hot-toast";
-
-const { TextArea } = Input;
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css"; // Important: Quill styles
 
 const AddCabinetry = () => {
   const [form] = Form.useForm();
@@ -24,7 +24,7 @@ const AddCabinetry = () => {
       const formData = new FormData();
       formData.append("code", values.code);
       formData.append("color", values.colorName);
-      formData.append("description", values.description);
+      formData.append("description", values.description); // This will be HTML string
       formData.append("cabinetryCategoryId", categoryId);
 
       // Append all images
@@ -51,7 +51,7 @@ const AddCabinetry = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white border border-gray-200 rounded-xl ">
+    <div className="max-w-4xl mx-auto p-6 bg-white border border-gray-200 rounded-xl">
       <div className="flex items-center gap-3 mb-6">
         <Button
           type="text"
@@ -77,7 +77,7 @@ const AddCabinetry = () => {
             listType="picture-card"
             fileList={fileList}
             onChange={handleUpload}
-            beforeUpload={() => false}
+            beforeUpload={() => false} // Prevent auto upload
             multiple
             accept="image/*"
             onRemove={handleRemoveImage}
@@ -121,7 +121,7 @@ const AddCabinetry = () => {
           </Form.Item>
         </div>
 
-        {/* Description */}
+        {/* Rich Text Description with React Quill */}
         <Form.Item
           label={
             <span className="text-base font-semibold">
@@ -129,12 +129,43 @@ const AddCabinetry = () => {
             </span>
           }
           name="description"
-          rules={[{ required: true, message: "Please enter description" }]}
+          rules={[
+            { required: true, message: "Please enter description" },
+            {
+              validator: (_, value) => {
+                const text = value ? value.replace(/<[^>]*>/g, "").trim() : "";
+                return text.length > 0
+                  ? Promise.resolve()
+                  : Promise.reject(new Error("Description cannot be empty"));
+              },
+            },
+          ]}
         >
-          <TextArea
-            rows={8}
-            placeholder="Write a description about the cabinetry..."
-            className="resize-none"
+          <ReactQuill
+            theme="snow"
+            placeholder={`Write a description about the cabinetry...\n\nExample:\nS8 - White Shaker\n\n• Door Panel: 3/4”-thick solid wood; full overlay door.\n• Door Hinge: 6-way adjustable; soft-close metal; hidden Euro-style.\n• Adjustable Shelf: 5/8”-thick cabinet-grade plywood...`}
+            modules={{
+              toolbar: [
+                [{ header: [1, 2, 3, false] }],
+                ["bold", "italic", "underline"],
+                [{ list: "ordered" }, { list: "bullet" }],
+                [{ indent: "-1" }, { indent: "+1" }],
+                ["clean"],
+              ],
+            }}
+            formats={[
+              "header",
+              "bold",
+              "italic",
+              "underline",
+              "list",
+              "bullet",
+              "indent",
+            ]}
+            style={{
+              height: "320px", // Editor height
+              marginBottom: "60px", // Space for toolbar + submit buttons
+            }}
           />
         </Form.Item>
 

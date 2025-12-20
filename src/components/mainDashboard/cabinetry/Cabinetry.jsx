@@ -193,7 +193,7 @@ const Cabinetry = () => {
                         <img
                           src={`${cabinet.images[0]}`}
                           alt={cabinet.code}
-                          className="w-full h-32 object-cover rounded-t"
+                          className="w-full h-56 object-cover rounded-t"
                         />
                       ) : (
                         <div className="bg-gray-300 h-32 flex items-center justify-center">
