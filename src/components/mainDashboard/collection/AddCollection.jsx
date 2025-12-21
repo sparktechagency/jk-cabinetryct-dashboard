@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { Form, Input, Button, Upload } from "antd";
 import { UploadOutlined, ArrowLeftOutlined } from "@ant-design/icons";
-import { useNavigate, useParams } from "react-router-dom";
-import { useAddcabinetryMutation } from "../../../redux/features/cabinetry/cabinetryApi";
+import { useNavigate } from "react-router-dom";
+import { useAddCollectionMutation } from "../../../redux/features/collection/collectionApi";
 import toast from "react-hot-toast";
 import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css"; 
-const AddCabinetry = () => {
+import "react-quill/dist/quill.snow.css";
+
+const MAX_FILES = 20; // Match backend limit
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+const AddCollection = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const { categoryId } = useParams();
-  const [addCabinetry, { isLoading }] = useAddcabinetryMutation();
+  const [addCollection, { isLoading }] = useAddCollectionMutation();
   const [fileList, setFileList] = useState([]);
 
   const onFinish = async (values) => {
@@ -23,30 +26,81 @@ const AddCabinetry = () => {
       const formData = new FormData();
       formData.append("code", values.code);
       formData.append("color", values.colorName);
-      formData.append("description", values.description); // This will be HTML string
-      formData.append("cabinetryCategoryId", categoryId);
+      formData.append("description", values.description);
 
       // Append all images
       fileList.forEach((file) => {
         formData.append("images", file.originFileObj || file);
       });
 
-      const res = await addCabinetry(formData).unwrap();
-      toast.success(res?.message || "Cabinetry added successfully");
+      const res = await addCollection(formData).unwrap();
+      toast.success(res?.message || "Collection added successfully");
       form.resetFields();
       setFileList([]);
-      navigate("/cabinetry");
+      navigate("/collection");
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to add cabinetry");
+      console.error("Upload error:", error);
+      toast.error(error?.data?.message || "Failed to add collection");
     }
   };
 
   const handleUpload = ({ fileList: newFileList }) => {
+    // Validate file count
+    if (newFileList.length > MAX_FILES) {
+      toast.error(`Maximum ${MAX_FILES} files allowed`);
+      return;
+    }
+
+    // Validate each file size
+    const oversizedFiles = newFileList.filter(
+      (file) => file.size > MAX_FILE_SIZE
+    );
+
+    if (oversizedFiles.length > 0) {
+      toast.error(
+        `File size should not exceed 50MB. Found ${oversizedFiles.length} oversized file(s)`
+      );
+      return;
+    }
+
     setFileList(newFileList);
   };
 
   const handleRemoveImage = (file) => {
     setFileList(fileList.filter((item) => item.uid !== file.uid));
+  };
+
+  // Custom validation before upload
+  const beforeUpload = (file) => {
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`${file.name} exceeds 50MB limit`);
+      return false;
+    }
+
+    // Check file type
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/heic",
+      "image/heif",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(`${file.name} is not a supported image format`);
+      return false;
+    }
+
+    // Check total file count (including this file)
+    if (fileList.length >= MAX_FILES) {
+      toast.error(`Maximum ${MAX_FILES} files allowed`);
+      return false;
+    }
+
+    return false; // Prevent auto upload
   };
 
   return (
@@ -55,11 +109,11 @@ const AddCabinetry = () => {
         <Button
           type="text"
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/cabinetry")}
+          onClick={() => navigate("/collection")}
           className="text-gray-600 hover:text-primary"
         />
         <h2 className="text-xl font-semibold text-primary">
-          Add New Cabinetry
+          Add New Collection
         </h2>
       </div>
 
@@ -68,7 +122,7 @@ const AddCabinetry = () => {
         <Form.Item
           label={
             <span className="text-base font-semibold">
-              Upload Cabinetry Photos <span className="text-red-500">*</span>
+              Upload Collection Photos <span className="text-red-500">*</span>
             </span>
           }
         >
@@ -76,12 +130,13 @@ const AddCabinetry = () => {
             listType="picture-card"
             fileList={fileList}
             onChange={handleUpload}
-            beforeUpload={() => false} // Prevent auto upload
+            beforeUpload={beforeUpload}
             multiple
-            accept="image/*"
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/heic,image/heif"
             onRemove={handleRemoveImage}
+            maxCount={MAX_FILES}
           >
-            {fileList.length >= 8 ? null : (
+            {fileList.length >= MAX_FILES ? null : (
               <div>
                 <UploadOutlined />
                 <div style={{ marginTop: 8 }}>Upload</div>
@@ -89,8 +144,14 @@ const AddCabinetry = () => {
             )}
           </Upload>
           <div className="text-xs text-gray-500 mt-2">
-            You can upload up to 8 images. Supported formats: JPG, PNG, JPEG
+            You can upload up to {MAX_FILES} images. Maximum file size: 50MB.
+            Supported formats: JPG, PNG, GIF, WEBP, HEIC, HEIF
           </div>
+          {fileList.length > 0 && (
+            <div className="text-sm text-gray-600 mt-2">
+              {fileList.length} / {MAX_FILES} files selected
+            </div>
+          )}
         </Form.Item>
 
         {/* Code and Color Name */}
@@ -142,7 +203,7 @@ const AddCabinetry = () => {
         >
           <ReactQuill
             theme="snow"
-            placeholder={`Write a description about the cabinetry...\n\nExample:\nS8 - White Shaker\n\n• Door Panel: 3/4”-thick solid wood; full overlay door.\n• Door Hinge: 6-way adjustable; soft-close metal; hidden Euro-style.\n• Adjustable Shelf: 5/8”-thick cabinet-grade plywood...`}
+            placeholder={`Write a description about the collection...\n\nExample:\nS8 - White Shaker\n\n• Door Panel: 3/4"-thick solid wood; full overlay door.\n• Door Hinge: 6-way adjustable; soft-close metal; hidden Euro-style.\n• Adjustable Shelf: 5/8"-thick cabinet-grade plywood...`}
             modules={{
               toolbar: [
                 [{ header: [1, 2, 3, false] }],
@@ -162,8 +223,8 @@ const AddCabinetry = () => {
               "indent",
             ]}
             style={{
-              height: "320px", // Editor height
-              marginBottom: "60px", // Space for toolbar + submit buttons
+              height: "320px",
+              marginBottom: "60px",
             }}
           />
         </Form.Item>
@@ -176,7 +237,7 @@ const AddCabinetry = () => {
               size="large"
               className="px-8"
               disabled={isLoading}
-              onClick={() => navigate("/cabinetry")}
+              onClick={() => navigate("/collection")}
             >
               Cancel
             </Button>
@@ -196,4 +257,4 @@ const AddCabinetry = () => {
   );
 };
 
-export default AddCabinetry;
+export default AddCollection;

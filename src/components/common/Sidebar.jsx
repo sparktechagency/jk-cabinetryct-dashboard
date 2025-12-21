@@ -14,6 +14,11 @@ const Sidebar = ({ onClose }) => {
       icon: <Users className="h-7 w-7 lg:h-5 lg:w-5" />,
     },
     {
+      path: "collection",
+      name: "Collection",
+      icon: <FaSackDollar className="h-7 w-7 lg:h-5 lg:w-5" />,
+    },
+    {
       path: "cabinetry",
       name: "Cabinetry",
       icon: <FaSackDollar className="h-7 w-7 lg:h-5 lg:w-5" />,

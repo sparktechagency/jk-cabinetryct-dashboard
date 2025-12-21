@@ -31,6 +31,9 @@ import AddParts from "../components/mainDashboard/stockItem/AddParts";
 import EditParts from "../components/mainDashboard/stockItem/EditParts";
 import DashboardHome from "../components/mainDashboard/dashboard/DashboardHome";
 import TransactionPage from "../components/mainDashboard/transaction/TransactionPage";
+import CollectionList from "../components/mainDashboard/collection/CollectionList";
+import AddCollection from "../components/mainDashboard/collection/AddCollection";
+import EditCollection from "../components/mainDashboard/collection/EditCollection";
 
 export const router = createBrowserRouter([
   {
@@ -65,6 +68,18 @@ export const router = createBrowserRouter([
       {
         path: "editprofile",
         element: <EditProfile />,
+      },
+      {
+        path: "collection",
+        element: <CollectionList />,
+      },
+      {
+        path: "collection/add-collection",
+        element: <AddCollection />,
+      },
+      {
+        path: "collection/edit-collection/:collectionId",
+        element: <EditCollection />,
       },
       {
         path: "cabinetry",

@@ -36,6 +36,7 @@ export const baseApi = createApi({
     "Branch",
     "Cabinetry",
     "CabinetryCategory",
+    "Collection",
     "Order",
     "StockItem",
     "StockItemCategory",
