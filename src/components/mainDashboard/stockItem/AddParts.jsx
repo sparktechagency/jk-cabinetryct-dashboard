@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAddPartMutation } from "../../../redux/features/parts/partsApi";
 import toast from "react-hot-toast";
-
-const { TextArea } = Input;
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 const AddParts = () => {
   const [form] = Form.useForm();
@@ -20,15 +20,27 @@ const AddParts = () => {
       return;
     }
 
+    // Check if description is empty (Quill returns "<p><br></p>" when empty)
+    const desc = values.description || "";
+    const isEmpty =
+      desc === "<p><br></p>" ||
+      desc.trim() === "" ||
+      desc.replace(/<[^>]*>/g, "").trim() === "";
+
+    if (isEmpty) {
+      toast.error("Please enter a description");
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("title", values.title);
       formData.append("code", values.code);
-      formData.append("description", values.description);
+      formData.append("description", desc); // Rich HTML content from Quill
       formData.append("stockItemId", stockItemId);
       formData.append("stockItemTitleId", stockItemTitleId);
 
-      // Add price object
+      // Price object
       const priceObj = {
         wholesale: values.wholesale,
         wholesaleWithTenPercent: values.wholesaleWithTenPercent,
@@ -37,7 +49,7 @@ const AddParts = () => {
       formData.append("price", JSON.stringify(priceObj));
       formData.append("assemblyPrice", values.assemblyPrice);
 
-      // Append all images
+      // Append images
       fileList.forEach((file) => {
         formData.append("images", file.originFileObj || file);
       });
@@ -124,7 +136,7 @@ const AddParts = () => {
           </Form.Item>
         </div>
 
-        {/* Description */}
+        {/* Description with ReactQuill - Now properly integrated with AntD Form */}
         <Form.Item
           label={
             <span className="text-base font-semibold">
@@ -132,12 +144,46 @@ const AddParts = () => {
             </span>
           }
           name="description"
-          rules={[{ required: true, message: "Please enter description" }]}
+          rules={[
+            {
+              required: true,
+              message: "Please enter a description",
+            },
+            {
+              validator: (_, value) => {
+                const text = value ? value.replace(/<[^>]*>/g, "").trim() : "";
+                return text.length > 0
+                  ? Promise.resolve()
+                  : Promise.reject(new Error("Description cannot be empty"));
+              },
+            },
+          ]}
         >
-          <TextArea
-            rows={6}
-            placeholder="Write a detailed description about the part..."
-            className="resize-none"
+          <ReactQuill
+            theme="snow"
+            placeholder={`Write a description about the cabinetry...\n\nExample:\nS8 - White Shaker\n\n• Door Panel: 3/4”-thick solid wood; full overlay door.\n• Door Hinge: 6-way adjustable; soft-close metal; hidden Euro-style.\n• Adjustable Shelf: 5/8”-thick cabinet-grade plywood...`}
+            modules={{
+              toolbar: [
+                [{ header: [1, 2, 3, false] }],
+                ["bold", "italic", "underline"],
+                [{ list: "ordered" }, { list: "bullet" }],
+                [{ indent: "-1" }, { indent: "+1" }],
+                ["clean"],
+              ],
+            }}
+            formats={[
+              "header",
+              "bold",
+              "italic",
+              "underline",
+              "list",
+              "bullet",
+              "indent",
+            ]}
+            style={{
+              height: "320px",
+              marginBottom: "60px",
+            }}
           />
         </Form.Item>
 

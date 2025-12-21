@@ -11,8 +11,8 @@ import {
   useUpdatePartMutation,
 } from "../../../redux/features/parts/partsApi";
 import toast from "react-hot-toast";
-
-const { TextArea } = Input;
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 const EditParts = () => {
   const [form] = Form.useForm();
@@ -21,38 +21,56 @@ const EditParts = () => {
 
   const { data: partData, isLoading: isFetching } =
     useGetSinglePartQuery(partId);
-  const [updatePart, { isLoading }] = useUpdatePartMutation();
+  const [updatePart, { isLoading: isUpdating }] = useUpdatePartMutation();
 
   const [existingImages, setExistingImages] = useState([]);
   const [deletedImages, setDeletedImages] = useState([]);
   const [newFileList, setNewFileList] = useState([]);
   const [stockItemId, setStockItemId] = useState(null);
 
+  // Populate form when data is fetched
   useEffect(() => {
     if (partData?.data) {
       const part = partData.data;
+
       form.setFieldsValue({
         title: part.title,
         code: part.code,
-        description: part.description,
+        description: part.description, // This now works perfectly with ReactQuill
         wholesale: part.price?.wholesale,
         wholesaleWithTenPercent: part.price?.wholesaleWithTenPercent,
         contractor: part.price?.contractor,
-        assemblyPrice: part?.assemblyPrice,
+        assemblyPrice: part.assemblyPrice,
       });
+
       setExistingImages(part.images || []);
-      setStockItemId(part?.stockItemId?._id);
+      setStockItemId(part.stockItemId?._id || part.stockItemId);
     }
   }, [partData, form]);
 
   const onFinish = async (values) => {
+    // Optional: Extra safety check for description (though validator already handles it)
+    const desc = values.description || "";
+    const plainText = desc.replace(/<[^>]*>/g, "").trim();
+    if (!plainText) {
+      toast.error("Please enter a description");
+      return;
+    }
+
+    // Check total images (existing remaining + new) don't exceed 8
+    const totalImages = existingImages.length + newFileList.length;
+    if (totalImages > 8) {
+      toast.error("Total images cannot exceed 8");
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("title", values.title);
       formData.append("code", values.code);
-      formData.append("description", values.description);
+      formData.append("description", desc);
 
-      // Add price object
+      // Price object
       const priceObj = {
         wholesale: values.wholesale,
         wholesaleWithTenPercent: values.wholesaleWithTenPercent,
@@ -61,12 +79,12 @@ const EditParts = () => {
       formData.append("price", JSON.stringify(priceObj));
       formData.append("assemblyPrice", values.assemblyPrice);
 
-      // Add deleted images array
+      // Deleted images
       if (deletedImages.length > 0) {
         formData.append("deletedImages", JSON.stringify(deletedImages));
       }
 
-      // Add new images
+      // New images
       newFileList.forEach((file) => {
         formData.append("images", file.originFileObj || file);
       });
@@ -80,8 +98,8 @@ const EditParts = () => {
   };
 
   const handleDeleteExistingImage = (imagePath) => {
-    setExistingImages(existingImages.filter((img) => img !== imagePath));
-    setDeletedImages([...deletedImages, imagePath]);
+    setExistingImages((prev) => prev.filter((img) => img !== imagePath));
+    setDeletedImages((prev) => [...prev, imagePath]);
   };
 
   const handleNewUpload = ({ fileList: newFiles }) => {
@@ -119,8 +137,8 @@ const EditParts = () => {
               {existingImages.map((imagePath, index) => (
                 <div key={index} className="relative group">
                   <img
-                    src={`${imagePath}`}
-                    alt={`Part ${index + 1}`}
+                    src={imagePath}
+                    alt={`Part image ${index + 1}`}
                     className="w-full h-32 object-cover rounded border"
                   />
                   <Button
@@ -153,7 +171,7 @@ const EditParts = () => {
             multiple
             accept="image/*"
           >
-            {newFileList.length + existingImages.length >= 8 ? null : (
+            {existingImages.length + newFileList.length >= 8 ? null : (
               <div>
                 <UploadOutlined />
                 <div style={{ marginTop: 8 }}>Upload</div>
@@ -192,7 +210,7 @@ const EditParts = () => {
           </Form.Item>
         </div>
 
-        {/* Description */}
+        {/* Description - Now fully integrated with AntD Form */}
         <Form.Item
           label={
             <span className="text-base font-semibold">
@@ -200,12 +218,43 @@ const EditParts = () => {
             </span>
           }
           name="description"
-          rules={[{ required: true, message: "Please enter description" }]}
+          rules={[
+            { required: true, message: "Please enter a description" },
+            {
+              validator: (_, value) => {
+                const text = value ? value.replace(/<[^>]*>/g, "").trim() : "";
+                return text.length > 0
+                  ? Promise.resolve()
+                  : Promise.reject(new Error("Description cannot be empty"));
+              },
+            },
+          ]}
         >
-          <TextArea
-            rows={6}
-            placeholder="Write a detailed description about the part..."
-            className="resize-none"
+          <ReactQuill
+            theme="snow"
+            placeholder="Write a description about the cabinetry..."
+            modules={{
+              toolbar: [
+                [{ header: [1, 2, 3, false] }],
+                ["bold", "italic", "underline"],
+                [{ list: "ordered" }, { list: "bullet" }],
+                [{ indent: "-1" }, { indent: "+1" }],
+                ["clean"],
+              ],
+            }}
+            formats={[
+              "header",
+              "bold",
+              "italic",
+              "underline",
+              "list",
+              "bullet",
+              "indent",
+            ]}
+            style={{
+              height: "320px",
+              marginBottom: "60px",
+            }}
           />
         </Form.Item>
 
@@ -237,7 +286,7 @@ const EditParts = () => {
               rules={[
                 {
                   required: true,
-                  message: "Please enter wholesale with 10% price",
+                  message: "Please enter wholesale +10% price",
                 },
               ]}
             >
@@ -290,7 +339,7 @@ const EditParts = () => {
             <Button
               size="large"
               onClick={() => navigate(`/stock-items/details/${stockItemId}`)}
-              disabled={isLoading}
+              disabled={isUpdating}
             >
               Cancel
             </Button>
@@ -299,7 +348,7 @@ const EditParts = () => {
               htmlType="submit"
               size="large"
               className="bg-[#721011]"
-              loading={isLoading}
+              loading={isUpdating}
             >
               Update Part
             </Button>

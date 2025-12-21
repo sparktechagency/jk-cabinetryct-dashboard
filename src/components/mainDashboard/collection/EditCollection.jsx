@@ -304,7 +304,7 @@ const EditCollection = () => {
           }
           name="description"
           rules={[
-            { required: true, message: "Please enter description" },
+            { required: true },
             {
               validator: (_, value) => {
                 const text = value ? value.replace(/<[^>]*>/g, "").trim() : "";

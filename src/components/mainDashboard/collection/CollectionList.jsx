@@ -4,8 +4,7 @@ import {
   EditOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Modal, Popconfirm, Spin } from "antd";
-import { useState } from "react";
+import { Button, Card, Popconfirm, Spin } from "antd";
 import { useNavigate } from "react-router-dom";
 import {
   useDeleteCollectionMutation,

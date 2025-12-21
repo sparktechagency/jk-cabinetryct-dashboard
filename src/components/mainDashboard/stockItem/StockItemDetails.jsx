@@ -46,9 +46,9 @@ const StockItemDetails = () => {
 
   const [titleForm] = Form.useForm();
 
-  // Get titles data - API already filters by stockItemId
-  const stockItemName = responseData?.data[0]?.stockItemName;
-  const titles = responseData?.data[0]?.titles || [];
+  // Get data from response - Fixed field names
+  const stockItemName = responseData?.data?.[0]?.stockItemName;
+  const titles = responseData?.data?.[0]?.titles || [];
 
   // Add Title
   const handleAddTitle = () => {
@@ -71,10 +71,10 @@ const StockItemDetails = () => {
     }
   };
 
-  // Edit Title
+  // Edit Title - Fixed to use titleName
   const handleEditTitle = (title) => {
     setEditingTitle(title);
-    titleForm.setFieldsValue({ titleName: title.stockItemTitle });
+    titleForm.setFieldsValue({ titleName: title.titleName }); // Changed from title.stockItemTitle
     setIsEditTitleModalOpen(true);
   };
 
@@ -83,7 +83,7 @@ const StockItemDetails = () => {
       const values = await titleForm.validateFields();
       const res = await updateTitle({
         data: { title: values.titleName },
-        id: editingTitle.stockItemTitleId,
+        id: editingTitle.titleId, // Changed from stockItemTitleId
       }).unwrap();
       toast.success(res?.message || "Title updated successfully!");
       setIsEditTitleModalOpen(false);
@@ -94,7 +94,7 @@ const StockItemDetails = () => {
     }
   };
 
-  // Delete Title
+  // Delete Title - Fixed to use titleId
   const handleDeleteTitle = async (titleId) => {
     try {
       const res = await deleteTitle(titleId).unwrap();
@@ -131,7 +131,10 @@ const StockItemDetails = () => {
     );
   }
 
-  console.log("Parts Data", titles);
+  console.log("Response Data:", responseData);
+  console.log("Stock Item Name:", stockItemName);
+  console.log("Titles:", titles);
+
   return (
     <div className="w-full min-h-screen bg-white rounded-xl border p-6">
       {/* Header */}
@@ -165,10 +168,11 @@ const StockItemDetails = () => {
       ) : (
         titles?.map((title) => (
           <div key={title?.titleId} className="mb-12">
-            {/* Title Header with Edit/Delete */}
+            {/* Title Header with Edit/Delete - Fixed to use titleName */}
             <div className="flex items-center justify-between mb-3">
               <div className="bg-primary/80 font-semibold rounded text-white px-4 py-2 inline-flex items-center gap-3">
-                <span>{title?.title}</span>
+                <span>{title?.titleName}</span>{" "}
+                {/* Changed from title?.title */}
                 <div className="flex gap-2">
                   <Button
                     type="text"
@@ -180,7 +184,7 @@ const StockItemDetails = () => {
                   <Popconfirm
                     title="Delete Title"
                     description="Are you sure? All parts under this title will be deleted."
-                    onConfirm={() => handleDeleteTitle(title.stockItemTitleId)}
+                    onConfirm={() => handleDeleteTitle(title.titleId)} // Changed from stockItemTitleId
                     okText="Yes"
                     cancelText="No"
                     okButtonProps={{ danger: true }}
@@ -198,90 +202,99 @@ const StockItemDetails = () => {
 
             {/* Items Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 border-t border-gray-200 py-3 gap-6">
-              {title?.parts?.map((item) => (
-                <Card
-                  key={item._id}
-                  className="shadow transition-shadow rounded-xl group relative"
-                  bodyStyle={{ padding: "16px" }}
-                >
-                  <div className="relative">
-                    {item.images && item.images.length > 0 ? (
-                      <Carousel
-                        autoplay
-                        autoplaySpeed={3000}
-                        className="rounded-xl mb-4 overflow-hidden"
-                      >
-                        {item.images.map((image, index) => (
-                          <div key={index} className="w-full h-56">
-                            <img
-                              src={`${image}`}
-                              alt={`${item.code} - ${index + 1}`}
-                              className="w-full h-56 object-cover"
-                            />
-                          </div>
-                        ))}
-                      </Carousel>
-                    ) : (
-                      <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-48 mb-4 flex items-center justify-center">
-                        <span className="text-4xl text-gray-400">No Image</span>
-                      </div>
-                    )}
+              {title?.parts?.length > 0 ? (
+                title.parts.map((item) => (
+                  <Card
+                    key={item._id}
+                    className="shadow transition-shadow rounded-xl group relative"
+                    bodyStyle={{ padding: "16px" }}
+                  >
+                    <div className="relative">
+                      {item.images && item.images.length > 0 ? (
+                        <Carousel
+                          autoplay
+                          autoplaySpeed={3000}
+                          className="rounded-xl mb-4 overflow-hidden"
+                        >
+                          {item.images.map((image, index) => (
+                            <div key={index} className="w-full h-56">
+                              <img
+                                src={`${image}`}
+                                alt={`${item.code} - ${index + 1}`}
+                                className="w-full h-56 object-cover"
+                              />
+                            </div>
+                          ))}
+                        </Carousel>
+                      ) : (
+                        <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-48 mb-4 flex items-center justify-center">
+                          <span className="text-4xl text-gray-400">
+                            No Image
+                          </span>
+                        </div>
+                      )}
 
-                    {/* Hover Overlay with Edit and Delete Buttons */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-xl mb-4">
-                      <Button
-                        type="primary"
-                        size="small"
-                        icon={<EditOutlined />}
-                        onClick={() => handleEditPart(item._id)}
-                      >
-                        Edit
-                      </Button>
-                      <Popconfirm
-                        title="Delete Part"
-                        description="Are you sure you want to delete this part?"
-                        onConfirm={(e) => handleDeletePart(item._id, e)}
-                        okText="Yes"
-                        cancelText="No"
-                        okButtonProps={{ danger: true }}
-                      >
+                      {/* Hover Overlay with Edit and Delete Buttons */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-xl mb-4">
                         <Button
                           type="primary"
-                          danger
                           size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={(e) => e.stopPropagation()}
+                          icon={<EditOutlined />}
+                          onClick={() => handleEditPart(item._id)}
                         >
-                          Delete
+                          Edit
                         </Button>
-                      </Popconfirm>
+                        <Popconfirm
+                          title="Delete Part"
+                          description="Are you sure you want to delete this part?"
+                          onConfirm={(e) => handleDeletePart(item._id, e)}
+                          okText="Yes"
+                          cancelText="No"
+                          okButtonProps={{ danger: true }}
+                        >
+                          <Button
+                            type="primary"
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Delete
+                          </Button>
+                        </Popconfirm>
+                      </div>
                     </div>
-                  </div>
 
-                  <h4 className="font-bold text-gray-800">{item.code}</h4>
-                  <p className="text-base text-gray-600 mt-1 line-clamp-2">
-                    {item.description}
-                  </p>
+                    <h4 className="font-bold text-gray-800">{item.code}</h4>
+                    <div
+                      dangerouslySetInnerHTML={{ __html: item.description }}
+                    />
 
-                  <h1 className="text-base font-semibold mt-5 mb-2 text-primary">
-                    Price Details:
-                  </h1>
-                  <div className="space-y-1 grid grid-cols-2 gap-3">
-                    <p className="text-base ">
-                      Wholesale: ${item.price?.wholesale || 0}
-                    </p>
-                    <p className="text-base text-gray-500">
-                      With 10%: ${item.price?.wholesaleWithTenPercent || 0}
-                    </p>
-                    <p className="text-base text-gray-500">
-                      Contractor: ${item.price?.contractor || 0}
-                    </p>
-                    <p className="text-base text-gray-500">
-                      Assembly: ${item?.assemblyPrice || 0}
-                    </p>
-                  </div>
-                </Card>
-              ))}
+                    <h1 className="text-base font-semibold mt-5 mb-2 text-primary">
+                      Price Details:
+                    </h1>
+                    <div className="space-y-1 grid grid-cols-2 gap-3">
+                      <p className="text-base ">
+                        Wholesale: ${item.price?.wholesale || 0}
+                      </p>
+                      <p className="text-base text-gray-500">
+                        With 10%: ${item.price?.wholesaleWithTenPercent || 0}
+                      </p>
+                      <p className="text-base text-gray-500">
+                        Contractor: ${item.price?.contractor || 0}
+                      </p>
+                      <p className="text-base text-gray-500">
+                        Assembly: ${item?.assemblyPrice || 0}
+                      </p>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full text-center text-gray-500 py-8">
+                  No parts found under this title. Click the + button to add a
+                  part.
+                </div>
+              )}
 
               {/* Add Item Card */}
               <div
