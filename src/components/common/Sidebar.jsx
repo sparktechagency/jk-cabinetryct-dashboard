@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import logo from "../../assets/logo/logo.png";
-import { FaDollarSign, FaSackDollar, FaUsers } from "react-icons/fa6";
+import { FaSackDollar, FaUsers } from "react-icons/fa6";
 import { RiAdminLine } from "react-icons/ri";
 import { Users, X } from "lucide-react";
 import ActiveLink from "../../components/common/ActiveLink";
@@ -38,11 +38,6 @@ const Sidebar = ({ onClose }) => {
     //   name: "Transaction",
     //   icon: <MdOutlinePayment className="h-7 w-7 lg:h-5 lg:w-5" />,
     // },
-    {
-      path: "pricing",
-      name: "Pricing",
-      icon: <FaDollarSign className="h-7 w-7 lg:h-5 lg:w-5" />,
-    },
     {
       path: "settings",
       name: "Settings",

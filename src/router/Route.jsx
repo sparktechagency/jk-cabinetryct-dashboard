@@ -18,7 +18,6 @@ import About from "../components/mainDashboard/settings/about/About";
 import EditAbout from "../components/mainDashboard/settings/about/EditAbout";
 import Settings from "../components/mainDashboard/settings/Settings";
 import ChangePassword from "../components/mainDashboard/settings/ChangePassword";
-import Pricing from "../components/mainDashboard/pricing/Pricing";
 import Order from "../components/mainDashboard/order/Order";
 import Cabinetry from "../components/mainDashboard/cabinetry/Cabinetry";
 import AddCabinetry from "../components/mainDashboard/cabinetry/AddCabinetry";
@@ -116,10 +115,6 @@ export const router = createBrowserRouter([
       {
         path: "transaction",
         element: <TransactionPage />,
-      },
-      {
-        path: "pricing",
-        element: <Pricing />,
       },
       {
         path: "/inbox",

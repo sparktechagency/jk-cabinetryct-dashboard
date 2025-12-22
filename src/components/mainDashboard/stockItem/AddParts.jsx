@@ -52,7 +52,10 @@ const AddParts = () => {
 
       // Append main image
       if (mainImageFile) {
-        formData.append("mainImage", mainImageFile.originFileObj || mainImageFile);
+        formData.append(
+          "mainImage",
+          mainImageFile.originFileObj || mainImageFile
+        );
       }
 
       // Append other images
@@ -129,9 +132,7 @@ const AddParts = () => {
         {/* Upload Other Images */}
         <Form.Item
           label={
-            <span className="text-base font-semibold">
-              Upload Other Images
-            </span>
+            <span className="text-base font-semibold">Upload Other Images</span>
           }
         >
           <Upload
@@ -151,7 +152,8 @@ const AddParts = () => {
             )}
           </Upload>
           <div className="text-xs text-gray-500 mt-2">
-            You can upload up to 8 additional images. Supported formats: JPG, PNG, JPEG
+            You can upload up to 8 additional images. Supported formats: JPG,
+            PNG, JPEG
           </div>
         </Form.Item>
 
