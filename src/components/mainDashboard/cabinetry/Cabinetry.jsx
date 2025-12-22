@@ -189,7 +189,13 @@ const Cabinetry = () => {
                   key={cabinet._id}
                   cover={
                     <div className="relative rounded-t">
-                      {cabinet.images && cabinet.images.length > 0 ? (
+                      {cabinet.mainImage ? (
+                        <img
+                          src={`${cabinet.mainImage}`}
+                          alt={cabinet.code}
+                          className="w-full h-56 object-cover rounded-t"
+                        />
+                      ) : cabinet.images && cabinet.images.length > 0 ? (
                         <img
                           src={`${cabinet.images[0]}`}
                           alt={cabinet.code}

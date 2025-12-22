@@ -85,7 +85,13 @@ const CollectionList = () => {
               key={collection._id}
               cover={
                 <div className="relative rounded-t">
-                  {collection.images && collection.images.length > 0 ? (
+                  {collection.mainImage ? (
+                    <img
+                      src={`${collection.mainImage}`}
+                      alt={collection.code}
+                      className="w-full h-56 object-cover rounded-t"
+                    />
+                  ) : collection.images && collection.images.length > 0 ? (
                     <img
                       src={`${collection.images[0]}`}
                       alt={collection.code}

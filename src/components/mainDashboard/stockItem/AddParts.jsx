@@ -12,11 +12,12 @@ const AddParts = () => {
   const navigate = useNavigate();
   const { stockItemId, stockItemTitleId } = useParams();
   const [addPart, { isLoading }] = useAddPartMutation();
-  const [fileList, setFileList] = useState([]);
+  const [mainImageFile, setMainImageFile] = useState(null);
+  const [otherImages, setOtherImages] = useState([]);
 
   const onFinish = async (values) => {
-    if (fileList.length === 0) {
-      toast.error("Please upload at least one image");
+    if (!mainImageFile) {
+      toast.error("Please upload a main image");
       return;
     }
 
@@ -49,23 +50,41 @@ const AddParts = () => {
       formData.append("price", JSON.stringify(priceObj));
       formData.append("assemblyPrice", values.assemblyPrice);
 
-      // Append images
-      fileList.forEach((file) => {
+      // Append main image
+      if (mainImageFile) {
+        formData.append("mainImage", mainImageFile.originFileObj || mainImageFile);
+      }
+
+      // Append other images
+      otherImages.forEach((file) => {
         formData.append("images", file.originFileObj || file);
       });
 
       const res = await addPart(formData).unwrap();
       toast.success(res?.message || "Part added successfully");
       form.resetFields();
-      setFileList([]);
+      setMainImageFile(null);
+      setOtherImages([]);
       navigate(`/stock-items/details/${stockItemId}`);
     } catch (error) {
       toast.error(error?.data?.message || "Failed to add part");
     }
   };
 
-  const handleUpload = ({ fileList: newFileList }) => {
-    setFileList(newFileList);
+  const handleMainImageUpload = ({ file }) => {
+    setMainImageFile(file);
+  };
+
+  const handleOtherImagesUpload = ({ fileList: newFileList }) => {
+    setOtherImages(newFileList);
+  };
+
+  const handleRemoveMainImage = () => {
+    setMainImageFile(null);
+  };
+
+  const handleRemoveOtherImage = (file) => {
+    setOtherImages(otherImages.filter((item) => item.uid !== file.uid));
   };
 
   return (
@@ -81,31 +100,58 @@ const AddParts = () => {
       </div>
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        {/* Upload Photos */}
+        {/* Upload Main Image */}
         <Form.Item
           label={
             <span className="text-base font-semibold">
-              Upload Part Photos <span className="text-red-500">*</span>
+              Upload Main Image <span className="text-red-500">*</span>
             </span>
           }
         >
           <Upload
             listType="picture-card"
-            fileList={fileList}
-            onChange={handleUpload}
+            fileList={mainImageFile ? [mainImageFile] : []}
+            onChange={handleMainImageUpload}
+            beforeUpload={() => false}
+            maxCount={1}
+            accept="image/*"
+            onRemove={handleRemoveMainImage}
+          >
+            {!mainImageFile && (
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>Upload Main Image</div>
+              </div>
+            )}
+          </Upload>
+        </Form.Item>
+
+        {/* Upload Other Images */}
+        <Form.Item
+          label={
+            <span className="text-base font-semibold">
+              Upload Other Images
+            </span>
+          }
+        >
+          <Upload
+            listType="picture-card"
+            fileList={otherImages}
+            onChange={handleOtherImagesUpload}
             beforeUpload={() => false}
             multiple
             accept="image/*"
+            onRemove={handleRemoveOtherImage}
           >
-            {fileList.length >= 8 ? null : (
+            {otherImages.length >= 8 ? null : (
               <div>
                 <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
+                <div style={{ marginTop: 8 }}>Upload Images</div>
               </div>
             )}
           </Upload>
           <div className="text-xs text-gray-500 mt-2">
-            You can upload up to 8 images. Supported formats: JPG, PNG, JPEG
+            You can upload up to 8 additional images. Supported formats: JPG, PNG, JPEG
           </div>
         </Form.Item>
 

@@ -23,9 +23,11 @@ const EditParts = () => {
     useGetSinglePartQuery(partId);
   const [updatePart, { isLoading: isUpdating }] = useUpdatePartMutation();
 
-  const [existingImages, setExistingImages] = useState([]);
+  const [existingMainImage, setExistingMainImage] = useState(null);
+  const [existingOtherImages, setExistingOtherImages] = useState([]);
   const [deletedImages, setDeletedImages] = useState([]);
-  const [newFileList, setNewFileList] = useState([]);
+  const [newMainImage, setNewMainImage] = useState(null);
+  const [newOtherImages, setNewOtherImages] = useState([]);
   const [stockItemId, setStockItemId] = useState(null);
 
   // Populate form when data is fetched
@@ -43,7 +45,13 @@ const EditParts = () => {
         assemblyPrice: part.assemblyPrice,
       });
 
-      setExistingImages(part.images || []);
+      // Handle main image and other images separately
+      if (part.mainImage) {
+        setExistingMainImage(part.mainImage);
+      }
+      if (part.images && Array.isArray(part.images)) {
+        setExistingOtherImages(part.images);
+      }
       setStockItemId(part.stockItemId?._id || part.stockItemId);
     }
   }, [partData, form]);
@@ -58,7 +66,7 @@ const EditParts = () => {
     }
 
     // Check total images (existing remaining + new) don't exceed 8
-    const totalImages = existingImages.length + newFileList.length;
+    const totalImages = existingOtherImages.length + newOtherImages.length;
     if (totalImages > 8) {
       toast.error("Total images cannot exceed 8");
       return;
@@ -84,8 +92,13 @@ const EditParts = () => {
         formData.append("deletedImages", JSON.stringify(deletedImages));
       }
 
-      // New images
-      newFileList.forEach((file) => {
+      // New main image
+      if (newMainImage) {
+        formData.append("mainImage", newMainImage.originFileObj || newMainImage);
+      }
+
+      // New other images
+      newOtherImages.forEach((file) => {
         formData.append("images", file.originFileObj || file);
       });
 
@@ -97,13 +110,30 @@ const EditParts = () => {
     }
   };
 
-  const handleDeleteExistingImage = (imagePath) => {
-    setExistingImages((prev) => prev.filter((img) => img !== imagePath));
+  const handleDeleteExistingMainImage = (imagePath) => {
+    setExistingMainImage(null);
     setDeletedImages((prev) => [...prev, imagePath]);
   };
 
-  const handleNewUpload = ({ fileList: newFiles }) => {
-    setNewFileList(newFiles);
+  const handleDeleteExistingOtherImage = (imagePath) => {
+    setExistingOtherImages((prev) => prev.filter((img) => img !== imagePath));
+    setDeletedImages((prev) => [...prev, imagePath]);
+  };
+
+  const handleNewMainImageUpload = ({ file }) => {
+    setNewMainImage(file);
+  };
+
+  const handleNewOtherImagesUpload = ({ fileList: newFiles }) => {
+    setNewOtherImages(newFiles);
+  };
+
+  const handleRemoveNewMainImage = () => {
+    setNewMainImage(null);
+  };
+
+  const handleRemoveNewOtherImage = (file) => {
+    setNewOtherImages(newOtherImages.filter((item) => item.uid !== file.uid));
   };
 
   if (isFetching) {
@@ -127,14 +157,40 @@ const EditParts = () => {
       </div>
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        {/* Existing Images */}
-        {existingImages.length > 0 && (
+        {/* Existing Main Image */}
+        {existingMainImage && (
           <div className="mb-6">
             <label className="block text-base font-semibold mb-3">
-              Existing Images
+              Existing Main Image
+            </label>
+            <div className="relative group">
+              <img
+                src={existingMainImage}
+                alt="Main Part Image"
+                className="w-full h-32 object-cover rounded border"
+              />
+              <Button
+                type="primary"
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                onClick={() => handleDeleteExistingMainImage(existingMainImage)}
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Existing Other Images */}
+        {existingOtherImages.length > 0 && (
+          <div className="mb-6">
+            <label className="block text-base font-semibold mb-3">
+              Existing Other Images
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {existingImages.map((imagePath, index) => (
+              {existingOtherImages.map((imagePath, index) => (
                 <div key={index} className="relative group">
                   <img
                     src={imagePath}
@@ -146,7 +202,7 @@ const EditParts = () => {
                     danger
                     size="small"
                     icon={<DeleteOutlined />}
-                    onClick={() => handleDeleteExistingImage(imagePath)}
+                    onClick={() => handleDeleteExistingOtherImage(imagePath)}
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     Delete
@@ -157,24 +213,49 @@ const EditParts = () => {
           </div>
         )}
 
-        {/* Upload New Photos */}
+        {/* Upload New Main Image */}
         <Form.Item
           label={
-            <span className="text-base font-semibold">Upload New Photos</span>
+            <span className="text-base font-semibold">Upload New Main Image</span>
           }
         >
           <Upload
             listType="picture-card"
-            fileList={newFileList}
-            onChange={handleNewUpload}
+            fileList={newMainImage ? [newMainImage] : []}
+            onChange={handleNewMainImageUpload}
+            beforeUpload={() => false}
+            maxCount={1}
+            accept="image/*"
+            onRemove={handleRemoveNewMainImage}
+          >
+            {!newMainImage && (
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>Upload Main Image</div>
+              </div>
+            )}
+          </Upload>
+        </Form.Item>
+
+        {/* Upload New Other Images */}
+        <Form.Item
+          label={
+            <span className="text-base font-semibold">Upload New Other Images</span>
+          }
+        >
+          <Upload
+            listType="picture-card"
+            fileList={newOtherImages}
+            onChange={handleNewOtherImagesUpload}
             beforeUpload={() => false}
             multiple
             accept="image/*"
+            onRemove={handleRemoveNewOtherImage}
           >
-            {existingImages.length + newFileList.length >= 8 ? null : (
+            {existingOtherImages.length + newOtherImages.length >= 8 ? null : (
               <div>
                 <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
+                <div style={{ marginTop: 8 }}>Upload Images</div>
               </div>
             )}
           </Upload>

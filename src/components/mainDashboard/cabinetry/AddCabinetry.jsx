@@ -11,11 +11,12 @@ const AddCabinetry = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams();
   const [addCabinetry, { isLoading }] = useAddcabinetryMutation();
-  const [fileList, setFileList] = useState([]);
+  const [mainImageFile, setMainImageFile] = useState(null);
+  const [otherImages, setOtherImages] = useState([]);
 
   const onFinish = async (values) => {
-    if (fileList.length === 0) {
-      toast.error("Please upload at least one image");
+    if (!mainImageFile) {
+      toast.error("Please upload a main image");
       return;
     }
 
@@ -26,27 +27,41 @@ const AddCabinetry = () => {
       formData.append("description", values.description); // This will be HTML string
       formData.append("cabinetryCategoryId", categoryId);
 
-      // Append all images
-      fileList.forEach((file) => {
+      // Append main image
+      if (mainImageFile) {
+        formData.append("mainImage", mainImageFile.originFileObj || mainImageFile);
+      }
+
+      // Append other images
+      otherImages.forEach((file) => {
         formData.append("images", file.originFileObj || file);
       });
 
       const res = await addCabinetry(formData).unwrap();
       toast.success(res?.message || "Cabinetry added successfully");
       form.resetFields();
-      setFileList([]);
+      setMainImageFile(null);
+      setOtherImages([]);
       navigate("/cabinetry");
     } catch (error) {
       toast.error(error?.data?.message || "Failed to add cabinetry");
     }
   };
 
-  const handleUpload = ({ fileList: newFileList }) => {
-    setFileList(newFileList);
+  const handleMainImageUpload = ({ file }) => {
+    setMainImageFile(file);
   };
 
-  const handleRemoveImage = (file) => {
-    setFileList(fileList.filter((item) => item.uid !== file.uid));
+  const handleOtherImagesUpload = ({ fileList: newFileList }) => {
+    setOtherImages(newFileList);
+  };
+
+  const handleRemoveMainImage = () => {
+    setMainImageFile(null);
+  };
+
+  const handleRemoveOtherImage = (file) => {
+    setOtherImages(otherImages.filter((item) => item.uid !== file.uid));
   };
 
   return (
@@ -64,32 +79,58 @@ const AddCabinetry = () => {
       </div>
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        {/* Upload Photos */}
+        {/* Upload Main Image */}
         <Form.Item
           label={
             <span className="text-base font-semibold">
-              Upload Cabinetry Photos <span className="text-red-500">*</span>
+              Upload Main Image <span className="text-red-500">*</span>
             </span>
           }
         >
           <Upload
             listType="picture-card"
-            fileList={fileList}
-            onChange={handleUpload}
-            beforeUpload={() => false} // Prevent auto upload
-            multiple
+            fileList={mainImageFile ? [mainImageFile] : []}
+            onChange={handleMainImageUpload}
+            beforeUpload={() => false}
+            maxCount={1}
             accept="image/*"
-            onRemove={handleRemoveImage}
+            onRemove={handleRemoveMainImage}
           >
-            {fileList.length >= 8 ? null : (
+            {!mainImageFile && (
               <div>
                 <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
+                <div style={{ marginTop: 8 }}>Upload Main Image</div>
+              </div>
+            )}
+          </Upload>
+        </Form.Item>
+
+        {/* Upload Other Images */}
+        <Form.Item
+          label={
+            <span className="text-base font-semibold">
+              Upload Other Images
+            </span>
+          }
+        >
+          <Upload
+            listType="picture-card"
+            fileList={otherImages}
+            onChange={handleOtherImagesUpload}
+            beforeUpload={() => false}
+            multiple
+            accept="image/*"
+            onRemove={handleRemoveOtherImage}
+          >
+            {otherImages.length >= 8 ? null : (
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>Upload Images</div>
               </div>
             )}
           </Upload>
           <div className="text-xs text-gray-500 mt-2">
-            You can upload up to 8 images. Supported formats: JPG, PNG, JPEG
+            You can upload up to 8 additional images. Supported formats: JPG, PNG, JPEG
           </div>
         </Form.Item>
 

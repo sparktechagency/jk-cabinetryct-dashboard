@@ -14,11 +14,12 @@ const AddCollection = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const [addCollection, { isLoading }] = useAddCollectionMutation();
-  const [fileList, setFileList] = useState([]);
+  const [mainImageFile, setMainImageFile] = useState(null);
+  const [otherImages, setOtherImages] = useState([]);
 
   const onFinish = async (values) => {
-    if (fileList.length === 0) {
-      toast.error("Please upload at least one image");
+    if (!mainImageFile) {
+      toast.error("Please upload a main image");
       return;
     }
 
@@ -28,15 +29,21 @@ const AddCollection = () => {
       formData.append("color", values.colorName);
       formData.append("description", values.description);
 
-      // Append all images
-      fileList.forEach((file) => {
+      // Append main image
+      if (mainImageFile) {
+        formData.append("mainImage", mainImageFile.originFileObj || mainImageFile);
+      }
+
+      // Append other images
+      otherImages.forEach((file) => {
         formData.append("images", file.originFileObj || file);
       });
 
       const res = await addCollection(formData).unwrap();
       toast.success(res?.message || "Collection added successfully");
       form.resetFields();
-      setFileList([]);
+      setMainImageFile(null);
+      setOtherImages([]);
       navigate("/collection");
     } catch (error) {
       console.error("Upload error:", error);
@@ -44,7 +51,33 @@ const AddCollection = () => {
     }
   };
 
-  const handleUpload = ({ fileList: newFileList }) => {
+  const handleMainImageUpload = ({ file }) => {
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`${file.name} exceeds 50MB limit`);
+      return;
+    }
+
+    // Check file type
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/heic",
+      "image/heif",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(`${file.name} is not a supported image format`);
+      return;
+    }
+
+    setMainImageFile(file);
+  };
+
+  const handleOtherImagesUpload = ({ fileList: newFileList }) => {
     // Validate file count
     if (newFileList.length > MAX_FILES) {
       toast.error(`Maximum ${MAX_FILES} files allowed`);
@@ -63,15 +96,46 @@ const AddCollection = () => {
       return;
     }
 
-    setFileList(newFileList);
+    setOtherImages(newFileList);
   };
 
-  const handleRemoveImage = (file) => {
-    setFileList(fileList.filter((item) => item.uid !== file.uid));
+  const handleRemoveMainImage = () => {
+    setMainImageFile(null);
   };
 
-  // Custom validation before upload
-  const beforeUpload = (file) => {
+  const handleRemoveOtherImage = (file) => {
+    setOtherImages(otherImages.filter((item) => item.uid !== file.uid));
+  };
+
+  // Custom validation before upload for main image
+  const beforeMainImageUpload = (file) => {
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`${file.name} exceeds 50MB limit`);
+      return false;
+    }
+
+    // Check file type
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/heic",
+      "image/heif",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(`${file.name} is not a supported image format`);
+      return false;
+    }
+
+    return false; // Prevent auto upload
+  };
+
+  // Custom validation before upload for other images
+  const beforeOtherImagesUpload = (file) => {
     // Check file size
     if (file.size > MAX_FILE_SIZE) {
       toast.error(`${file.name} exceeds 50MB limit`);
@@ -95,7 +159,7 @@ const AddCollection = () => {
     }
 
     // Check total file count (including this file)
-    if (fileList.length >= MAX_FILES) {
+    if (otherImages.length >= MAX_FILES) {
       toast.error(`Maximum ${MAX_FILES} files allowed`);
       return false;
     }
@@ -118,38 +182,64 @@ const AddCollection = () => {
       </div>
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        {/* Upload Photos */}
+        {/* Upload Main Image */}
         <Form.Item
           label={
             <span className="text-base font-semibold">
-              Upload Collection Photos <span className="text-red-500">*</span>
+              Upload Main Image <span className="text-red-500">*</span>
             </span>
           }
         >
           <Upload
             listType="picture-card"
-            fileList={fileList}
-            onChange={handleUpload}
-            beforeUpload={beforeUpload}
-            multiple
+            fileList={mainImageFile ? [mainImageFile] : []}
+            onChange={handleMainImageUpload}
+            beforeUpload={beforeMainImageUpload}
+            maxCount={1}
             accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/heic,image/heif"
-            onRemove={handleRemoveImage}
-            maxCount={MAX_FILES}
+            onRemove={handleRemoveMainImage}
           >
-            {fileList.length >= MAX_FILES ? null : (
+            {!mainImageFile && (
               <div>
                 <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
+                <div style={{ marginTop: 8 }}>Upload Main Image</div>
+              </div>
+            )}
+          </Upload>
+        </Form.Item>
+
+        {/* Upload Other Images */}
+        <Form.Item
+          label={
+            <span className="text-base font-semibold">
+              Upload Other Images
+            </span>
+          }
+        >
+          <Upload
+            listType="picture-card"
+            fileList={otherImages}
+            onChange={handleOtherImagesUpload}
+            beforeUpload={beforeOtherImagesUpload}
+            multiple
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/heic,image/heif"
+            onRemove={handleRemoveOtherImage}
+            maxCount={MAX_FILES}
+          >
+            {otherImages.length >= MAX_FILES ? null : (
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>Upload Images</div>
               </div>
             )}
           </Upload>
           <div className="text-xs text-gray-500 mt-2">
-            You can upload up to {MAX_FILES} images. Maximum file size: 50MB.
+            You can upload up to {MAX_FILES} additional images. Maximum file size: 50MB.
             Supported formats: JPG, PNG, GIF, WEBP, HEIC, HEIF
           </div>
-          {fileList.length > 0 && (
+          {otherImages.length > 0 && (
             <div className="text-sm text-gray-600 mt-2">
-              {fileList.length} / {MAX_FILES} files selected
+              {otherImages.length} / {MAX_FILES} files selected
             </div>
           )}
         </Form.Item>

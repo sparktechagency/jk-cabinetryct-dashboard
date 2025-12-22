@@ -26,9 +26,11 @@ const EditCollection = () => {
     useGetSingleCollectionQuery(collectionId);
   const [updateCollection, { isLoading }] = useUpdateCollectionMutation();
 
-  const [existingImages, setExistingImages] = useState([]);
+  const [existingMainImage, setExistingMainImage] = useState(null);
+  const [existingOtherImages, setExistingOtherImages] = useState([]);
   const [deletedImages, setDeletedImages] = useState([]);
-  const [newFileList, setNewFileList] = useState([]);
+  const [newMainImage, setNewMainImage] = useState(null);
+  const [newOtherImages, setNewOtherImages] = useState([]);
 
   useEffect(() => {
     if (collectionData?.data) {
@@ -38,21 +40,28 @@ const EditCollection = () => {
         colorName: collection.color,
         description: collection.description,
       });
-      setExistingImages(collection.images || []);
+
+      // Handle main image and other images separately
+      if (collection.mainImage) {
+        setExistingMainImage(collection.mainImage);
+      }
+      if (collection.images && Array.isArray(collection.images)) {
+        setExistingOtherImages(collection.images);
+      }
     }
   }, [collectionData, form]);
 
   const onFinish = async (values) => {
-    // Calculate total images
-    const totalImages = existingImages.length + newFileList.length;
+    // Calculate total other images
+    const totalOtherImages = existingOtherImages.length + newOtherImages.length;
 
-    if (totalImages === 0) {
-      toast.error("Please keep at least one image");
+    if (!existingMainImage && !newMainImage) {
+      toast.error("Please keep at least one main image");
       return;
     }
 
-    if (totalImages > MAX_FILES) {
-      toast.error(`Total images cannot exceed ${MAX_FILES}`);
+    if (totalOtherImages > MAX_FILES) {
+      toast.error(`Total other images cannot exceed ${MAX_FILES}`);
       return;
     }
 
@@ -67,16 +76,23 @@ const EditCollection = () => {
         formData.append("deletedImages", JSON.stringify(deletedImages));
       }
 
-      // Add new images
-      newFileList.forEach((file) => {
+      // Add new main image
+      if (newMainImage) {
+        formData.append("mainImage", newMainImage.originFileObj || newMainImage);
+      }
+
+      // Add new other images
+      newOtherImages.forEach((file) => {
         formData.append("images", file.originFileObj || file);
       });
 
       console.log("Submitting update:", {
-        existingImages: existingImages.length,
+        existingMainImage: existingMainImage ? 1 : 0,
+        newMainImage: newMainImage ? 1 : 0,
+        existingOtherImages: existingOtherImages.length,
         deletedImages: deletedImages.length,
-        newImages: newFileList.length,
-        totalFinalImages: existingImages.length + newFileList.length,
+        newOtherImages: newOtherImages.length,
+        totalFinalImages: (existingMainImage ? 1 : 0) + existingOtherImages.length + newOtherImages.length,
       });
 
       const res = await updateCollection({
@@ -92,25 +108,57 @@ const EditCollection = () => {
     }
   };
 
-  const handleDeleteExistingImage = (imagePath) => {
-    const remainingImages = existingImages.length - 1;
-    const totalAfterDelete = remainingImages + newFileList.length;
+  const handleDeleteExistingMainImage = (imagePath) => {
+    setExistingMainImage(null);
+    setDeletedImages([...deletedImages, imagePath]);
+    toast.info("Main image marked for deletion");
+  };
 
-    if (totalAfterDelete === 0) {
+  const handleDeleteExistingOtherImage = (imagePath) => {
+    const remainingImages = existingOtherImages.length - 1;
+    const totalAfterDelete = remainingImages + newOtherImages.length;
+
+    if (totalAfterDelete === 0 && !existingMainImage && !newMainImage) {
       toast.error("At least one image is required");
       return;
     }
 
-    setExistingImages(existingImages.filter((img) => img !== imagePath));
+    setExistingOtherImages(existingOtherImages.filter((img) => img !== imagePath));
     setDeletedImages([...deletedImages, imagePath]);
     toast.info("Image marked for deletion");
   };
 
-  const handleNewUpload = ({ fileList: newFiles }) => {
-    const totalImages = existingImages.length + newFiles.length;
+  const handleNewMainImageUpload = ({ file }) => {
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`${file.name} exceeds 50MB limit`);
+      return;
+    }
+
+    // Check file type
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/heic",
+      "image/heif",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(`${file.name} is not a supported image format`);
+      return;
+    }
+
+    setNewMainImage(file);
+  };
+
+  const handleNewOtherImagesUpload = ({ fileList: newFiles }) => {
+    const totalImages = existingOtherImages.length + newFiles.length;
 
     if (totalImages > MAX_FILES) {
-      toast.error(`Total images cannot exceed ${MAX_FILES}`);
+      toast.error(`Total other images cannot exceed ${MAX_FILES}`);
       return;
     }
 
@@ -124,15 +172,46 @@ const EditCollection = () => {
       return;
     }
 
-    setNewFileList(newFiles);
+    setNewOtherImages(newFiles);
   };
 
-  const handleRemoveNewImage = (file) => {
-    setNewFileList(newFileList.filter((item) => item.uid !== file.uid));
+  const handleRemoveNewMainImage = () => {
+    setNewMainImage(null);
   };
 
-  // Custom validation before upload
-  const beforeUpload = (file) => {
+  const handleRemoveNewOtherImage = (file) => {
+    setNewOtherImages(newOtherImages.filter((item) => item.uid !== file.uid));
+  };
+
+  // Custom validation before upload for main image
+  const beforeMainImageUpload = (file) => {
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`${file.name} exceeds 50MB limit`);
+      return false;
+    }
+
+    // Check file type
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/heic",
+      "image/heif",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(`${file.name} is not a supported image format`);
+      return false;
+    }
+
+    return false; // Prevent auto upload
+  };
+
+  // Custom validation before upload for other images
+  const beforeOtherImagesUpload = (file) => {
     // Check file size
     if (file.size > MAX_FILE_SIZE) {
       toast.error(`${file.name} exceeds 50MB limit`);
@@ -156,9 +235,9 @@ const EditCollection = () => {
     }
 
     // Check total file count
-    const totalAfterUpload = existingImages.length + newFileList.length + 1;
+    const totalAfterUpload = existingOtherImages.length + newOtherImages.length + 1;
     if (totalAfterUpload > MAX_FILES) {
-      toast.error(`Total images cannot exceed ${MAX_FILES}`);
+      toast.error(`Total other images cannot exceed ${MAX_FILES}`);
       return false;
     }
 
@@ -173,7 +252,8 @@ const EditCollection = () => {
     );
   }
 
-  const totalImages = existingImages.length + newFileList.length;
+  const totalOtherImages = existingOtherImages.length + newOtherImages.length;
+  const totalImages = (existingMainImage ? 1 : 0) + totalOtherImages + (newMainImage ? 1 : 0);
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white border border-gray-200 rounded-xl">
@@ -200,14 +280,40 @@ const EditCollection = () => {
           </p>
         </div>
 
-        {/* Existing Images */}
-        {existingImages.length > 0 && (
+        {/* Existing Main Image */}
+        {existingMainImage && (
           <div className="mb-6">
             <label className="block text-base font-semibold mb-3">
-              Existing Images ({existingImages.length})
+              Existing Main Image
+            </label>
+            <div className="relative group">
+              <img
+                src={existingMainImage}
+                alt="Main Collection Image"
+                className="w-full h-56 object-cover rounded border"
+              />
+              <Button
+                type="primary"
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                onClick={() => handleDeleteExistingMainImage(existingMainImage)}
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Existing Other Images */}
+        {existingOtherImages.length > 0 && (
+          <div className="mb-6">
+            <label className="block text-base font-semibold mb-3">
+              Existing Other Images ({existingOtherImages.length})
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {existingImages.map((imagePath, index) => (
+              {existingOtherImages.map((imagePath, index) => (
                 <div key={index} className="relative group">
                   <img
                     src={imagePath}
@@ -219,7 +325,7 @@ const EditCollection = () => {
                     danger
                     size="small"
                     icon={<DeleteOutlined />}
-                    onClick={() => handleDeleteExistingImage(imagePath)}
+                    onClick={() => handleDeleteExistingOtherImage(imagePath)}
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     Delete
@@ -230,37 +336,63 @@ const EditCollection = () => {
           </div>
         )}
 
-        {/* Upload New Photos */}
+        {/* Upload New Main Image */}
         <Form.Item
           label={
             <span className="text-base font-semibold">
-              Upload New Photos{" "}
-              {newFileList.length > 0 && `(${newFileList.length})`}
+              Upload New Main Image
             </span>
           }
         >
           <Upload
             listType="picture-card"
-            fileList={newFileList}
-            onChange={handleNewUpload}
-            beforeUpload={beforeUpload}
-            multiple
+            fileList={newMainImage ? [newMainImage] : []}
+            onChange={handleNewMainImageUpload}
+            beforeUpload={beforeMainImageUpload}
+            maxCount={1}
             accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/heic,image/heif"
-            onRemove={handleRemoveNewImage}
-            maxCount={MAX_FILES}
+            onRemove={handleRemoveNewMainImage}
           >
-            {totalImages >= MAX_FILES ? null : (
+            {!newMainImage && (
               <div>
                 <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
+                <div style={{ marginTop: 8 }}>Upload Main Image</div>
+              </div>
+            )}
+          </Upload>
+        </Form.Item>
+
+        {/* Upload New Other Images */}
+        <Form.Item
+          label={
+            <span className="text-base font-semibold">
+              Upload New Other Images{" "}
+              {newOtherImages.length > 0 && `(${newOtherImages.length})`}
+            </span>
+          }
+        >
+          <Upload
+            listType="picture-card"
+            fileList={newOtherImages}
+            onChange={handleNewOtherImagesUpload}
+            beforeUpload={beforeOtherImagesUpload}
+            multiple
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/heic,image/heif"
+            onRemove={handleRemoveNewOtherImage}
+            maxCount={MAX_FILES}
+          >
+            {totalOtherImages >= MAX_FILES ? null : (
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>Upload Images</div>
               </div>
             )}
           </Upload>
           <div className="text-xs text-gray-500 mt-2">
-            Maximum {MAX_FILES} images total. Maximum file size: 50MB. Supported
+            Maximum {MAX_FILES} other images total. Maximum file size: 50MB. Supported
             formats: JPG, PNG, GIF, WEBP, HEIC, HEIF
           </div>
-          {totalImages >= MAX_FILES && (
+          {totalOtherImages >= MAX_FILES && (
             <div className="text-sm text-orange-600 mt-2">
               ⚠️ Maximum image limit reached. Delete existing images to add new
               ones.

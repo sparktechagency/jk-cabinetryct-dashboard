@@ -23,9 +23,11 @@ const EditCabinetry = () => {
     useGetSingleCabinetryQuery(cabinetId);
   const [updateCabinetry, { isLoading }] = useUpdateCabinetryMutation();
 
-  const [existingImages, setExistingImages] = useState([]);
+  const [existingMainImage, setExistingMainImage] = useState(null);
+  const [existingOtherImages, setExistingOtherImages] = useState([]);
   const [deletedImages, setDeletedImages] = useState([]);
-  const [newFileList, setNewFileList] = useState([]);
+  const [newMainImage, setNewMainImage] = useState(null);
+  const [newOtherImages, setNewOtherImages] = useState([]);
 
   useEffect(() => {
     if (cabinetryData?.data) {
@@ -35,7 +37,14 @@ const EditCabinetry = () => {
         colorName: cabinet.color,
         description: cabinet.description, // This should be HTML string from DB
       });
-      setExistingImages(cabinet.images || []);
+
+      // Handle main image and other images separately
+      if (cabinet.mainImage) {
+        setExistingMainImage(cabinet.mainImage);
+      }
+      if (cabinet.images && Array.isArray(cabinet.images)) {
+        setExistingOtherImages(cabinet.images);
+      }
     }
   }, [cabinetryData, form]);
 
@@ -44,15 +53,20 @@ const EditCabinetry = () => {
       const formData = new FormData();
       formData.append("code", values.code);
       formData.append("color", values.colorName);
-      formData.append("description", values.description); 
+      formData.append("description", values.description);
 
       // Add deleted images
       if (deletedImages.length > 0) {
         formData.append("deletedImages", JSON.stringify(deletedImages));
       }
 
-      // Add new images
-      newFileList.forEach((file) => {
+      // Add new main image
+      if (newMainImage) {
+        formData.append("mainImage", newMainImage.originFileObj || newMainImage);
+      }
+
+      // Add new other images
+      newOtherImages.forEach((file) => {
         formData.append("images", file.originFileObj || file);
       });
 
@@ -67,13 +81,30 @@ const EditCabinetry = () => {
     }
   };
 
-  const handleDeleteExistingImage = (imagePath) => {
-    setExistingImages(existingImages.filter((img) => img !== imagePath));
+  const handleDeleteExistingMainImage = (imagePath) => {
+    setExistingMainImage(null);
     setDeletedImages([...deletedImages, imagePath]);
   };
 
-  const handleNewUpload = ({ fileList: newFiles }) => {
-    setNewFileList(newFiles);
+  const handleDeleteExistingOtherImage = (imagePath) => {
+    setExistingOtherImages(existingOtherImages.filter((img) => img !== imagePath));
+    setDeletedImages([...deletedImages, imagePath]);
+  };
+
+  const handleNewMainImageUpload = ({ file }) => {
+    setNewMainImage(file);
+  };
+
+  const handleNewOtherImagesUpload = ({ fileList: newFiles }) => {
+    setNewOtherImages(newFiles);
+  };
+
+  const handleRemoveNewMainImage = () => {
+    setNewMainImage(null);
+  };
+
+  const handleRemoveNewOtherImage = (file) => {
+    setNewOtherImages(newOtherImages.filter((item) => item.uid !== file.uid));
   };
 
   if (isFetching) {
@@ -97,14 +128,40 @@ const EditCabinetry = () => {
       </div>
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        {/* Existing Images */}
-        {existingImages.length > 0 && (
+        {/* Existing Main Image */}
+        {existingMainImage && (
           <div className="mb-6">
             <label className="block text-base font-semibold mb-3">
-              Existing Images
+              Existing Main Image
+            </label>
+            <div className="relative group">
+              <img
+                src={existingMainImage}
+                alt="Main Cabinet Image"
+                className="w-full h-56 object-cover rounded border"
+              />
+              <Button
+                type="primary"
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                onClick={() => handleDeleteExistingMainImage(existingMainImage)}
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Existing Other Images */}
+        {existingOtherImages.length > 0 && (
+          <div className="mb-6">
+            <label className="block text-base font-semibold mb-3">
+              Existing Other Images
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {existingImages.map((imagePath, index) => (
+              {existingOtherImages.map((imagePath, index) => (
                 <div key={index} className="relative group">
                   <img
                     src={imagePath}
@@ -116,7 +173,7 @@ const EditCabinetry = () => {
                     danger
                     size="small"
                     icon={<DeleteOutlined />}
-                    onClick={() => handleDeleteExistingImage(imagePath)}
+                    onClick={() => handleDeleteExistingOtherImage(imagePath)}
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     Delete
@@ -127,24 +184,49 @@ const EditCabinetry = () => {
           </div>
         )}
 
-        {/* Upload New Photos */}
+        {/* Upload New Main Image */}
         <Form.Item
           label={
-            <span className="text-base font-semibold">Upload New Photos</span>
+            <span className="text-base font-semibold">Upload New Main Image</span>
           }
         >
           <Upload
             listType="picture-card"
-            fileList={newFileList}
-            onChange={handleNewUpload}
+            fileList={newMainImage ? [newMainImage] : []}
+            onChange={handleNewMainImageUpload}
+            beforeUpload={() => false}
+            maxCount={1}
+            accept="image/*"
+            onRemove={handleRemoveNewMainImage}
+          >
+            {!newMainImage && (
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>Upload Main Image</div>
+              </div>
+            )}
+          </Upload>
+        </Form.Item>
+
+        {/* Upload New Other Images */}
+        <Form.Item
+          label={
+            <span className="text-base font-semibold">Upload New Other Images</span>
+          }
+        >
+          <Upload
+            listType="picture-card"
+            fileList={newOtherImages}
+            onChange={handleNewOtherImagesUpload}
             beforeUpload={() => false}
             multiple
             accept="image/*"
+            onRemove={handleRemoveNewOtherImage}
           >
-            {newFileList.length + existingImages.length >= 8 ? null : (
+            {existingOtherImages.length + newOtherImages.length >= 8 ? null : (
               <div>
                 <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
+                <div style={{ marginTop: 8 }}>Upload Images</div>
               </div>
             )}
           </Upload>
