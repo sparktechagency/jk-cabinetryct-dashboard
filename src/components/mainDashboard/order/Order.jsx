@@ -21,10 +21,12 @@ import {
   HomeOutlined,
   CreditCardOutlined,
   SearchOutlined,
+  SendOutlined,
 } from "@ant-design/icons";
 import { useGetOrdersQuery } from "../../../redux/features/order/getOrder";
 import { useUpdateOrderStatusMutation } from "../../../redux/features/order/updateStatus";
 import dayjs from "dayjs";
+import { useSendPaymentLinkOrderMutation } from "../../../redux/features/order/sendPaymentLinkOrder";
 
 const OrderStatus = {
   PENDING: "pending",
@@ -40,6 +42,12 @@ const Order = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentLinkData, setPaymentLinkData] = useState({
+    payableAmount: "",
+    paymentLink: "",
+    orderNumber: "",
+  });
 
   const { data: ordersData, isLoading } = useGetOrdersQuery({
     searchTerm,
@@ -48,11 +56,44 @@ const Order = () => {
   const [updateOrderStatus, { isLoading: isUpdating }] =
     useUpdateOrderStatusMutation();
 
+  // send payment link
+  const [sendPaymentLink] = useSendPaymentLinkOrderMutation();
+
   const orders = ordersData?.data || [];
 
   const handleViewOrder = (record) => {
     setSelectedOrder(record);
     setIsModalOpen(true);
+  };
+
+  const handleOpenPaymentModal = (record) => {
+    setPaymentLinkData({
+      payableAmount: record.totalPrice?.toFixed(2) || "0.00",
+      paymentLink: "",
+      orderNumber: record.orderNumber,
+    });
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleSendPaymentLink = async () => {
+    try {
+      // Add your API call here to send payment link
+      await sendPaymentLink({
+        orderId: paymentLinkData?.orderNumber,
+        payableAmount: Number(paymentLinkData.payableAmount),
+        paymentLink: paymentLinkData.paymentLink,
+      }).unwrap();
+
+      message.success("Payment link sent successfully");
+      setIsPaymentModalOpen(false);
+      setPaymentLinkData({
+        payableAmount: "",
+        paymentLink: "",
+        orderNumber: "",
+      });
+    } catch (error) {
+      message.error(error?.data?.message || "Failed to send payment link");
+    }
   };
 
   const handleStatusChange = async (orderId, newStatus) => {
@@ -76,15 +117,14 @@ const Order = () => {
     return config[status] || { text: "Unknown", color: "default" };
   };
 
-  const formatAddress = (address) => {
-    if (!address) return "N/A";
-    const parts = [
-      address.address,
-      address.addressLine2,
-      `${address.city}, ${address.state}`,
-      `${address.country} - ${address.zipCode}`,
-    ].filter(Boolean);
-    return parts.join("\n");
+  // Calculate item total price with assembly
+  const calculateItemTotal = (item) => {
+    const basePrice = item.partsId?.price?.wholesale || 0;
+    const assemblyPrice = item.isAssemblyPrice
+      ? item.partsId?.assemblyPrice || 0
+      : 0;
+    const pricePerUnit = basePrice + assemblyPrice;
+    return pricePerUnit * item.quantity;
   };
 
   const columns = [
@@ -140,37 +180,72 @@ const Order = () => {
       ),
     },
     {
-      title: "Branch",
-      render: (_, r) => (
-        <div className="text-xs text-gray-600">
-          <div className="font-medium">{r.branchId?.name || "N/A"}</div>
-          <div>{r.branchId?.email}</div>
-        </div>
-      ),
-    },
-    {
       title: "Status",
       render: (_, r) => {
+        const getAvailableStatuses = (currentStatus) => {
+          switch (currentStatus) {
+            case OrderStatus.PENDING:
+              return [
+                { value: OrderStatus.PENDING, label: "Pending" },
+                { value: OrderStatus.CONFIRMED, label: "Confirmed" },
+              ];
+            case OrderStatus.CONFIRMED:
+              return [
+                { value: OrderStatus.CONFIRMED, label: "Confirmed" },
+                { value: OrderStatus.PROCESSING, label: "Processing" },
+              ];
+            case OrderStatus.PROCESSING:
+              return [
+                { value: OrderStatus.PROCESSING, label: "Processing" },
+                { value: OrderStatus.SHIPPED, label: "Shipped" },
+              ];
+            case OrderStatus.SHIPPED:
+              return [
+                { value: OrderStatus.SHIPPED, label: "Shipped" },
+                { value: OrderStatus.DELIVERED, label: "Delivered" },
+              ];
+            case OrderStatus.DELIVERED:
+              return [{ value: OrderStatus.DELIVERED, label: "Delivered" }];
+            case OrderStatus.CANCELLED:
+              return [{ value: OrderStatus.CANCELLED, label: "Cancelled" }];
+            default:
+              return [
+                { value: OrderStatus.PENDING, label: "Pending" },
+                { value: OrderStatus.CONFIRMED, label: "Confirmed" },
+                { value: OrderStatus.PROCESSING, label: "Processing" },
+                { value: OrderStatus.SHIPPED, label: "Shipped" },
+                { value: OrderStatus.DELIVERED, label: "Delivered" },
+                { value: OrderStatus.CANCELLED, label: "Cancelled" },
+              ];
+          }
+        };
+
         return (
           <Select
             value={r.status}
             style={{ width: 130 }}
             loading={isUpdating}
             onChange={(value) => handleStatusChange(r._id, value)}
-            options={[
-              { value: OrderStatus.PENDING, label: "Pending" },
-              { value: OrderStatus.CONFIRMED, label: "Confirmed" },
-              { value: OrderStatus.PROCESSING, label: "Processing" },
-              { value: OrderStatus.SHIPPED, label: "Shipped" },
-              { value: OrderStatus.DELIVERED, label: "Delivered" },
-              { value: OrderStatus.CANCELLED, label: "Cancelled" },
-            ]}
+            options={getAvailableStatuses(r.status)}
           />
         );
       },
     },
     {
-      title: "Action",
+      title: "Send Payment Link",
+      render: (_, record) => (
+        <Space className="flex justify-center">
+          <Button
+            type="text"
+            icon={<SendOutlined />}
+            onClick={() => handleOpenPaymentModal(record)}
+            className="bg-primary text-white p-2"
+          />
+        </Space>
+      ),
+    },
+    {
+      title: "View Order",
       render: (_, record) => (
         <Space>
           <Button
@@ -248,8 +323,9 @@ const Order = () => {
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
-        width={900}
+        width={1000}
         centered
+        bodyStyle={{ maxHeight: "70vh", overflowY: "auto" }}
       >
         {selectedOrder && (
           <div className="space-y-6">
@@ -271,10 +347,6 @@ const Order = () => {
                   <span>
                     <strong>Items:</strong> {selectedOrder.items?.length || 0}
                   </span>
-                  <span>
-                    <strong>Branch:</strong>{" "}
-                    {selectedOrder.branchId?.name || "N/A"}
-                  </span>
                 </div>
               </div>
               <Tag
@@ -293,7 +365,7 @@ const Order = () => {
                 <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
                   <HomeOutlined /> Shipping Address
                 </h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                   <p className="font-medium">
                     {selectedOrder.shippingAddress?.firstName}{" "}
                     {selectedOrder.shippingAddress?.lastName}
@@ -303,10 +375,36 @@ const Order = () => {
                       {selectedOrder.shippingAddress.companyName}
                     </p>
                   )}
-                  <p className="text-gray-600 whitespace-pre-line">
-                    {formatAddress(selectedOrder.shippingAddress)}
-                  </p>
-                  <div className="mt-3 space-y-1 text-sm">
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <p>
+                      <strong>Address:</strong>{" "}
+                      {selectedOrder.shippingAddress?.address}
+                    </p>
+                    {selectedOrder.shippingAddress?.addressLine2 && (
+                      <p>
+                        <strong>Address Line 2:</strong>{" "}
+                        {selectedOrder.shippingAddress.addressLine2}
+                      </p>
+                    )}
+                    <p>
+                      <strong>City:</strong>{" "}
+                      {selectedOrder.shippingAddress?.city}
+                    </p>
+                    <p>
+                      <strong>State:</strong>{" "}
+                      {selectedOrder.shippingAddress?.state}
+                    </p>
+                    <p>
+                      <strong>ZIP Code:</strong>{" "}
+                      {selectedOrder.shippingAddress?.zipCode}
+                    </p>
+                    <p>
+                      <strong>Country:</strong>{" "}
+                      {selectedOrder.shippingAddress?.country}
+                    </p>
+                  </div>
+                  <Divider className="my-2" />
+                  <div className="space-y-1 text-sm">
                     <span className="flex items-center gap-1">
                       <PhoneOutlined />{" "}
                       {selectedOrder.shippingAddress?.phoneNumber}
@@ -326,14 +424,6 @@ const Order = () => {
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
                     <span>${selectedOrder.subtotal?.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Shipping:</span>
-                    <span>${selectedOrder.shippingCost?.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tax:</span>
-                    <span>${selectedOrder.tax?.toFixed(2)}</span>
                   </div>
                   <Divider className="my-2" />
                   <div className="flex justify-between text-lg font-bold text-green-600">
@@ -361,14 +451,17 @@ const Order = () => {
                 columns={[
                   {
                     title: "Image",
-                    dataIndex: ["partsId", "images"],
+                    dataIndex: ["partsId", "mainImage"],
                     width: 80,
-                    render: (images) => (
+                    render: (mainImage, item) => (
                       <Image
                         src={
-                          images?.[0]
-                            ? `${import.meta.env.VITE_BASE_URL}${images[0]}`
-                            : "/placeholder.png"
+                          mainImage ||
+                          (item.partsId?.images?.[0]
+                            ? `${import.meta.env.VITE_BASE_URL}${
+                                item.partsId.images[0]
+                              }`
+                            : "/placeholder.png")
                         }
                         alt="Product"
                         width={50}
@@ -388,16 +481,35 @@ const Order = () => {
                         <div className="text-xs text-gray-500">
                           Code: {item.partsId?.code}
                         </div>
+                        {item.isAssemblyPrice && (
+                          <Tag color="blue" className="mt-1 text-xs">
+                            With Assembly
+                          </Tag>
+                        )}
                       </div>
                     ),
                   },
                   {
                     title: "Unit Price",
-                    render: (_, item) => (
-                      <span>
-                        ${item.partsId?.price?.wholesale?.toFixed(2) || "0.00"}
-                      </span>
-                    ),
+                    render: (_, item) => {
+                      const basePrice = item.partsId?.price?.wholesale || 0;
+                      const assemblyPrice = item.isAssemblyPrice
+                        ? item.partsId?.assemblyPrice || 0
+                        : 0;
+                      const totalUnitPrice = basePrice + assemblyPrice;
+
+                      return (
+                        <div className="text-right">
+                          <div>${totalUnitPrice.toFixed(2)}</div>
+                          {item.isAssemblyPrice && assemblyPrice > 0 && (
+                            <div className="text-xs text-gray-500">
+                              (Base: ${basePrice.toFixed(2)} + Assembly: $
+                              {assemblyPrice.toFixed(2)})
+                            </div>
+                          )}
+                        </div>
+                      );
+                    },
                     align: "right",
                   },
                   {
@@ -408,16 +520,23 @@ const Order = () => {
                   },
                   {
                     title: "Total",
-                    dataIndex: "totalPrice",
-                    render: (p) => (
-                      <span className="font-medium">${p?.toFixed(2)}</span>
-                    ),
+                    render: (_, item) => {
+                      const itemTotal = calculateItemTotal(item);
+                      return (
+                        <span className="font-medium">
+                          ${itemTotal.toFixed(2)}
+                        </span>
+                      );
+                    },
                     align: "right",
                   },
                 ]}
                 summary={() => (
                   <Table.Summary.Row>
-                    <Table.Summary.Cell colSpan={4} className="font-bold text-right">
+                    <Table.Summary.Cell
+                      colSpan={4}
+                      className="font-bold text-right"
+                    >
                       Subtotal
                     </Table.Summary.Cell>
                     <Table.Summary.Cell className="font-bold text-right text-green-600">
@@ -429,13 +548,97 @@ const Order = () => {
             </div>
 
             {/* Created By Info */}
-            <div className="text-sm text-gray-500 mt-4">
-              <strong>Created By:</strong> {selectedOrder.createdBy?.firstName}{" "}
-              {selectedOrder.createdBy?.lastName} (
-              {selectedOrder.createdBy?.email})
-            </div>
+            {selectedOrder.createdBy && (
+              <div className="text-sm text-gray-500 mt-4">
+                <strong>Created By:</strong>{" "}
+                {selectedOrder.createdBy?.firstName}{" "}
+                {selectedOrder.createdBy?.lastName} (
+                {selectedOrder.createdBy?.email})
+              </div>
+            )}
+
+            {/* Updated By Info */}
+            {selectedOrder.updatedBy && (
+              <div className="text-sm text-gray-500">
+                <strong>Last Updated By:</strong>{" "}
+                {selectedOrder.updatedBy?.firstName}{" "}
+                {selectedOrder.updatedBy?.lastName} (
+                {selectedOrder.updatedBy?.email})
+              </div>
+            )}
           </div>
         )}
+      </Modal>
+
+      {/* Payment Link Modal */}
+      <Modal
+        title={
+          <span className="text-xl font-bold flex items-center gap-2">
+            <SendOutlined /> Send Payment Link
+          </span>
+        }
+        open={isPaymentModalOpen}
+        onCancel={() => {
+          setIsPaymentModalOpen(false);
+          setPaymentLinkData({
+            payableAmount: "",
+            paymentLink: "",
+            orderNumber: "",
+          });
+        }}
+        onOk={handleSendPaymentLink}
+        okText="Send Payment Link"
+        cancelText="Cancel"
+        width={500}
+        centered
+      >
+        <div className="space-y-4 py-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Order Number
+            </label>
+            <Input
+              value={paymentLinkData.orderNumber}
+              disabled
+              className="bg-gray-50"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Payable Amount ($)
+            </label>
+            <Input
+              type="number"
+              value={paymentLinkData.payableAmount}
+              onChange={(e) =>
+                setPaymentLinkData({
+                  ...paymentLinkData,
+                  payableAmount: e.target.value,
+                })
+              }
+              placeholder="Enter payable amount"
+              prefix="$"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Payment Link
+            </label>
+            <Input.TextArea
+              value={paymentLinkData.paymentLink}
+              onChange={(e) =>
+                setPaymentLinkData({
+                  ...paymentLinkData,
+                  paymentLink: e.target.value,
+                })
+              }
+              placeholder="Enter payment link URL"
+              rows={3}
+            />
+          </div>
+        </div>
       </Modal>
     </>
   );

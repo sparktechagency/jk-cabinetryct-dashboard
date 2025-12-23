@@ -119,14 +119,6 @@ const UserDetails = () => {
     text: userData.status,
   };
 
-  const businessTypeMap = {
-    builderDeveloper: "Builder / Developer",
-    designer: "Designer",
-    contractor: "Contractor",
-    dealer: "Dealer",
-    showroom: "Showroom",
-  };
-
   return (
     <div className="w-full max-w-6xl mx-auto p-6 bg-white min-h-screen rounded-xl border">
       <h2 className="text-2xl font-semibold mb-6 text-primary">User Profile</h2>
@@ -153,11 +145,12 @@ const UserDetails = () => {
                 <span>
                   Status: <Tag color={status.color}>{status.text}</Tag>
                 </span>
-                {userData.businessType && (
+                {userData?.businessType && (
                   <span>
                     Type:{" "}
                     <Tag color="blue">
-                      {businessTypeMap[userData.businessType]}
+                      {userData?.businessType?.charAt(0)?.toUpperCase() +
+                        userData?.businessType?.slice(1)}
                     </Tag>
                   </span>
                 )}

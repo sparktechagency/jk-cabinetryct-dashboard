@@ -3,7 +3,7 @@ import { baseApi } from "../../api/baseApi";
 const getChatList = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getChatList: builder.query({
-      query: (id) => `/chat`,
+      query: () => `/chat`,
       providesTags: [{ type: "Message" }],
     }),
   }),

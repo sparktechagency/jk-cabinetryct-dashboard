@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import logo from "../../assets/logo/logo.png";
+import logo from "../../assets/logo/jk-cabinetryct-logo.png";
 import { FaSackDollar, FaUsers } from "react-icons/fa6";
 import { RiAdminLine } from "react-icons/ri";
 import { Users, X } from "lucide-react";
@@ -33,11 +33,6 @@ const Sidebar = ({ onClose }) => {
       name: "Order",
       icon: <FaUsers className="h-7 w-7 lg:h-5 lg:w-5" />,
     },
-    // {
-    //   path: "transaction",
-    //   name: "Transaction",
-    //   icon: <MdOutlinePayment className="h-7 w-7 lg:h-5 lg:w-5" />,
-    // },
     {
       path: "settings",
       name: "Settings",
@@ -57,7 +52,7 @@ const Sidebar = ({ onClose }) => {
       {/* Logo and Branch - Fixed at top */}
       <div className="flex-shrink-0 flex flex-col items-center justify-center p-3 pt-6 border-b border-gray-200">
         <Link to="/users" onClick={onClose}>
-          <img className="rounded-lg" src={logo} alt="Logo" />
+          <img className="rounded-lg h-[54px]" src={logo} alt="Logo " />
         </Link>
       </div>
 
