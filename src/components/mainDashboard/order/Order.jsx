@@ -13,6 +13,9 @@ import {
   Spin,
   message,
   Image,
+  Form,
+  Card,
+  Descriptions,
 } from "antd";
 import {
   EyeOutlined,
@@ -22,6 +25,9 @@ import {
   CreditCardOutlined,
   SearchOutlined,
   SendOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import { useGetOrdersQuery } from "../../../redux/features/order/getOrder";
 import { useUpdateOrderStatusMutation } from "../../../redux/features/order/updateStatus";
@@ -43,11 +49,7 @@ const Order = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [paymentLinkData, setPaymentLinkData] = useState({
-    payableAmount: "",
-    paymentLink: "",
-    orderNumber: "",
-  });
+  const [form] = Form.useForm();
 
   const { data: ordersData, isLoading } = useGetOrdersQuery({
     searchTerm,
@@ -55,9 +57,8 @@ const Order = () => {
   });
   const [updateOrderStatus, { isLoading: isUpdating }] =
     useUpdateOrderStatusMutation();
-
-  // send payment link
-  const [sendPaymentLink] = useSendPaymentLinkOrderMutation();
+  const [sendPaymentLink, { isLoading: isSendingPayment }] =
+    useSendPaymentLinkOrderMutation();
 
   const orders = ordersData?.data || [];
 
@@ -67,32 +68,34 @@ const Order = () => {
   };
 
   const handleOpenPaymentModal = (record) => {
-    setPaymentLinkData({
+    form.setFieldsValue({
+      orderNumber: record.orderNumber,
+      orderId: record._id,
       payableAmount: record.totalPrice?.toFixed(2) || "0.00",
       paymentLink: "",
-      orderNumber: record.orderNumber,
     });
     setIsPaymentModalOpen(true);
   };
 
   const handleSendPaymentLink = async () => {
     try {
-      // Add your API call here to send payment link
+      const values = await form.validateFields();
+
       await sendPaymentLink({
-        orderId: paymentLinkData?.orderNumber,
-        payableAmount: Number(paymentLinkData.payableAmount),
-        paymentLink: paymentLinkData.paymentLink,
+        orderId: values.orderId,
+        payableAmount: Number(values.payableAmount),
+        paymentLink: values.paymentLink,
       }).unwrap();
 
       message.success("Payment link sent successfully");
       setIsPaymentModalOpen(false);
-      setPaymentLinkData({
-        payableAmount: "",
-        paymentLink: "",
-        orderNumber: "",
-      });
+      form.resetFields();
     } catch (error) {
-      message.error(error?.data?.message || "Failed to send payment link");
+      if (error.errorFields) {
+        message.error("Please fill all required fields");
+      } else {
+        message.error(error?.data?.message || "Failed to send payment link");
+      }
     }
   };
 
@@ -117,7 +120,6 @@ const Order = () => {
     return config[status] || { text: "Unknown", color: "default" };
   };
 
-  // Calculate item total price with assembly
   const calculateItemTotal = (item) => {
     const basePrice = item.partsId?.price?.wholesale || 0;
     const assemblyPrice = item.isAssemblyPrice
@@ -146,15 +148,6 @@ const Order = () => {
       ),
     },
     {
-      title: "Shipping",
-      dataIndex: "shippingCost",
-      render: (cost) => (
-        <Tag color={cost > 0 ? "green" : "default"}>
-          {cost > 0 ? `$${cost.toFixed(2)}` : "Free"}
-        </Tag>
-      ),
-    },
-    {
       title: "Total Price",
       dataIndex: "totalPrice",
       render: (p) => (
@@ -162,6 +155,29 @@ const Order = () => {
           ${p?.toFixed(2) || "0.00"}
         </span>
       ),
+    },
+    {
+      title: "Payment Info",
+      render: (_, r) => {
+        if (!r.isPaymentLinkSent || !r.paymentDetails) {
+          return (
+            <Tag color="default" icon={<CloseCircleOutlined />}>
+              Not Sent
+            </Tag>
+          );
+        }
+
+        return (
+          <div className="space-y-1">
+            <Tag color="green" icon={<CheckCircleOutlined />}>
+              Link Sent
+            </Tag>
+            <div className="text-xs text-gray-600">
+              Amount: ${r.paymentDetails.payableAmount?.toFixed(2) || "0.00"}
+            </div>
+          </div>
+        );
+      },
     },
     {
       title: "Customer",
@@ -240,6 +256,12 @@ const Order = () => {
             icon={<SendOutlined />}
             onClick={() => handleOpenPaymentModal(record)}
             className="bg-primary text-white p-2"
+            disabled={record.isPaymentLinkSent}
+            title={
+              record.isPaymentLinkSent
+                ? "Payment link already sent"
+                : "Send payment link"
+            }
           />
         </Space>
       ),
@@ -359,6 +381,49 @@ const Order = () => {
 
             <Divider />
 
+            {/* Payment Details Card */}
+            {selectedOrder.isPaymentLinkSent &&
+              selectedOrder.paymentDetails && (
+                <>
+                  <Card
+                    title={
+                      <span className="flex items-center gap-2">
+                        <DollarOutlined /> Payment Details
+                      </span>
+                    }
+                    bordered={false}
+                    className="bg-green-50"
+                  >
+                    <Descriptions column={2} size="small">
+                      <Descriptions.Item label="Payable Amount">
+                        <span className="font-bold text-green-600">
+                          $
+                          {selectedOrder.paymentDetails.payableAmount?.toFixed(
+                            2
+                          )}
+                        </span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Payment Link Sent">
+                        <Tag color="green" icon={<CheckCircleOutlined />}>
+                          Yes
+                        </Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Payment Link" span={2}>
+                        <a
+                          href={selectedOrder.paymentDetails.paymentLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline break-all"
+                        >
+                          {selectedOrder.paymentDetails.paymentLink}
+                        </a>
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+                  <Divider />
+                </>
+              )}
+
             {/* Customer Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -430,6 +495,21 @@ const Order = () => {
                     <span>Total:</span>
                     <span>${selectedOrder.totalPrice?.toFixed(2)}</span>
                   </div>
+                  {selectedOrder.isPaymentLinkSent &&
+                    selectedOrder.paymentDetails && (
+                      <>
+                        <Divider className="my-2" />
+                        <div className="flex justify-between text-blue-600 font-semibold">
+                          <span>Payable Amount:</span>
+                          <span>
+                            $
+                            {selectedOrder.paymentDetails.payableAmount?.toFixed(
+                              2
+                            )}
+                          </span>
+                        </div>
+                      </>
+                    )}
                 </div>
                 {selectedOrder.notes && (
                   <div className="mt-4 bg-yellow-50 p-3 rounded-lg">
@@ -580,65 +660,68 @@ const Order = () => {
         open={isPaymentModalOpen}
         onCancel={() => {
           setIsPaymentModalOpen(false);
-          setPaymentLinkData({
-            payableAmount: "",
-            paymentLink: "",
-            orderNumber: "",
-          });
+          form.resetFields();
         }}
         onOk={handleSendPaymentLink}
         okText="Send Payment Link"
         cancelText="Cancel"
+        confirmLoading={isSendingPayment}
         width={500}
         centered
       >
-        <div className="space-y-4 py-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Order Number
-            </label>
-            <Input
-              value={paymentLinkData.orderNumber}
-              disabled
-              className="bg-gray-50"
-            />
-          </div>
+        <Form form={form} layout="vertical" className="py-4">
+          <Form.Item name="orderId" hidden>
+            <Input />
+          </Form.Item>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payable Amount ($)
-            </label>
+          <Form.Item label="Order Number" name="orderNumber">
+            <Input disabled className="bg-gray-50" />
+          </Form.Item>
+
+          <Form.Item
+            label="Payable Amount ($)"
+            name="payableAmount"
+            rules={[
+              { required: true, message: "Please enter payable amount" },
+              {
+                pattern: /^\d+(\.\d{1,2})?$/,
+                message: "Please enter a valid amount",
+              },
+            ]}
+          >
             <Input
               type="number"
-              value={paymentLinkData.payableAmount}
-              onChange={(e) =>
-                setPaymentLinkData({
-                  ...paymentLinkData,
-                  payableAmount: e.target.value,
-                })
-              }
               placeholder="Enter payable amount"
               prefix="$"
+              step="0.01"
             />
-          </div>
+          </Form.Item>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Link
-            </label>
+          <Form.Item
+            label="Payment Link"
+            name="paymentLink"
+            rules={[
+              { required: true, message: "Please enter payment link" },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  const regex = /^https:\/\/.+/;
+                  if (regex.test(value)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(
+                    new Error("Payment link must start with https://")
+                  );
+                },
+              },
+            ]}
+          >
             <Input.TextArea
-              value={paymentLinkData.paymentLink}
-              onChange={(e) =>
-                setPaymentLinkData({
-                  ...paymentLinkData,
-                  paymentLink: e.target.value,
-                })
-              }
-              placeholder="Enter payment link URL"
+              placeholder="Enter payment link URL (e.g., https://payment.example.com/...)"
               rows={3}
             />
-          </div>
-        </div>
+          </Form.Item>
+        </Form>
       </Modal>
     </>
   );
