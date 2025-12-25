@@ -7,7 +7,6 @@ import {
 import {
   Button,
   Card,
-  Carousel,
   Form,
   Input,
   Modal,
@@ -210,22 +209,12 @@ const StockItemDetails = () => {
                     bodyStyle={{ padding: "16px" }}
                   >
                     <div className="relative">
-                      {item.images && item.images.length > 0 ? (
-                        <Carousel
-                          autoplay
-                          autoplaySpeed={3000}
-                          className="rounded-xl mb-4 overflow-hidden"
-                        >
-                          {item.images.map((image, index) => (
-                            <div key={index} className="w-full h-56">
-                              <img
-                                src={`${image}`}
-                                alt={`${item.code} - ${index + 1}`}
-                                className="w-full h-56 object-cover"
-                              />
-                            </div>
-                          ))}
-                        </Carousel>
+                      {item?.mainImage ? (
+                        <img
+                          src={`${item?.mainImage}`}
+                          alt={`${item.code} - ${item?.color}`}
+                          className="w-full h-56 object-cover"
+                        />
                       ) : (
                         <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-48 mb-4 flex items-center justify-center">
                           <span className="text-4xl text-gray-400">
