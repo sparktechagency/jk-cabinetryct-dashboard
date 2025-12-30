@@ -21,15 +21,15 @@ const RecentOrders = () => {
 
   // Transform API data to match table format
   const transactions = recentOrdersData?.data?.map((order, index) => ({
-    key: order._id,
-    transactionId: order.orderNumber,
-    customerName: `${order.userId.firstName} ${order.userId.lastName}`,
-    customerAvatar: order.userId.firstName.charAt(0),
-    email: order.userId.email,
+    key: order?._id,
+    transactionId: order?.orderNumber,
+    customerName: `${order?.userId.firstName} ${order?.userId.lastName}`,
+    customerAvatar: order?.userId?.firstName?.charAt(0),
+    email: order?.userId.email,
     phone: "", // Phone is not in the API response
-    amount: order.totalPrice,
+    amount: order?.totalPrice,
     paymentMethod: "N/A", // Payment method is not in the API response
-    status: order.status,
+    status: order?.status,
     date: new Date(order.createdAt).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
