@@ -7,7 +7,6 @@ import moment from "moment";
 
 const Profile = () => {
   const { data: user } = useGetLoggedUserQuery();
-  console.log("User", user);
 
   return (
     <div className="p-6 min-h-screen bg-gray-50">

@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -12,21 +12,7 @@ import {
 } from "recharts";
 import { Select } from "antd";
 import { DollarOutlined } from "@ant-design/icons";
-
-const data = [
-  { month: "Jan", revenue: 2400, orders: 1800 },
-  { month: "Feb", revenue: 1398, orders: 2210 },
-  { month: "Mar", revenue: 9800, orders: 2290 },
-  { month: "Apr", revenue: 3908, orders: 2000 },
-  { month: "May", revenue: 4800, orders: 2181 },
-  { month: "Jun", revenue: 3800, orders: 2500 },
-  { month: "Jul", revenue: 5300, orders: 2100 },
-  { month: "Aug", revenue: 8300, orders: 3100 },
-  { month: "Sep", revenue: 7300, orders: 2800 },
-  { month: "Oct", revenue: 4300, orders: 2100 },
-  { month: "Nov", revenue: 9300, orders: 3500 },
-  { month: "Dec", revenue: 7300, orders: 2900 },
-];
+import { useGetOrderStaticsQuery } from "../../../redux/features/analytics/analyticsApi";
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -40,7 +26,10 @@ const CustomTooltip = ({ active, payload, label }) => {
               style={{ backgroundColor: item.color }}
             ></div>
             <p className="text-sm text-gray-700">
-              {item.name}: <span className="font-semibold">${item.value}</span>
+              {item.dataKey === "revenue" ? "Revenue" : "Orders"}:{" "}
+              <span className="font-semibold">
+                {item.dataKey === "revenue" ? `$${item.value}` : item.value}
+              </span>
             </p>
           </div>
         ))}
@@ -51,14 +40,127 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const Barchart = () => {
-  const [selectedYear, setSelectedYear] = useState("2024");
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear.toString());
 
   const handleChange = (value) => {
     setSelectedYear(value);
   };
 
-  const totalRevenue = data.reduce((sum, item) => sum + item.revenue, 0);
-  const avgRevenue = (totalRevenue / data.length).toFixed(0);
+  // Fetch order statistics data from API
+  const {
+    data: orderData,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetOrderStaticsQuery({
+    period: "yearly",
+    year: parseInt(selectedYear),
+  });
+
+  // Transform API data to match chart format
+  const chartData =
+    orderData?.data?.map((item) => ({
+      month: item.period,
+      revenue: item.revenue,
+      orders: item.count,
+    })) || [];
+
+  // Calculate total and average revenue
+  const totalRevenue = chartData.reduce((sum, item) => sum + item.revenue, 0);
+  const avgRevenue =
+    chartData.length > 0 ? (totalRevenue / chartData.length).toFixed(0) : 0;
+
+  // Refetch data when selected year changes
+  useEffect(() => {
+    refetch();
+  }, [selectedYear, refetch]);
+
+  if (isLoading) {
+    return (
+      <div className="mt-8 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#721011] to-[#8B1315] flex items-center justify-center shadow-md">
+              <DollarOutlined className="text-white text-xl" />
+            </div>
+            <div>
+              <h1 className="font-bold text-xl text-[#721011]">
+                Revenue Overview
+              </h1>
+              <p className="text-sm text-gray-500">
+                Monthly revenue and orders tracking
+              </p>
+            </div>
+          </div>
+          <Select
+            value={selectedYear}
+            className="w-32"
+            size="large"
+            onChange={handleChange}
+            options={[
+              { value: currentYear.toString(), label: currentYear.toString() },
+              {
+                value: (currentYear - 1).toString(),
+                label: (currentYear - 1).toString(),
+              },
+              {
+                value: (currentYear - 2).toString(),
+                label: (currentYear - 2).toString(),
+              },
+            ]}
+          />
+        </div>
+        <div className="flex justify-center items-center h-80">
+          <p className="text-gray-500">Loading chart data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="mt-8 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#721011] to-[#8B1315] flex items-center justify-center shadow-md">
+              <DollarOutlined className="text-white text-xl" />
+            </div>
+            <div>
+              <h1 className="font-bold text-xl text-[#721011]">
+                Revenue Overview
+              </h1>
+              <p className="text-sm text-gray-500">
+                Monthly revenue and orders tracking
+              </p>
+            </div>
+          </div>
+          <Select
+            value={selectedYear}
+            className="w-32"
+            size="large"
+            onChange={handleChange}
+            options={[
+              { value: currentYear.toString(), label: currentYear.toString() },
+              {
+                value: (currentYear - 1).toString(),
+                label: (currentYear - 1).toString(),
+              },
+              {
+                value: (currentYear - 2).toString(),
+                label: (currentYear - 2).toString(),
+              },
+            ]}
+          />
+        </div>
+        <div className="flex justify-center items-center h-80">
+          <p className="text-red-500">
+            Error loading chart data. Please try again later.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-8 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -70,7 +172,7 @@ const Barchart = () => {
           </div>
           <div>
             <h1 className="font-bold text-xl text-[#721011]">
-              Revenue Overview
+              Order and Revenue Statics
             </h1>
             <p className="text-sm text-gray-500">
               Monthly revenue and orders tracking
@@ -88,9 +190,15 @@ const Barchart = () => {
             size="large"
             onChange={handleChange}
             options={[
-              { value: "2024", label: "2024" },
-              { value: "2023", label: "2023" },
-              { value: "2022", label: "2022" },
+              { value: currentYear.toString(), label: currentYear.toString() },
+              {
+                value: (currentYear - 1).toString(),
+                label: (currentYear - 1).toString(),
+              },
+              {
+                value: (currentYear - 2).toString(),
+                label: (currentYear - 2).toString(),
+              },
             ]}
           />
         </div>
@@ -99,7 +207,7 @@ const Barchart = () => {
       {/* Chart */}
       <ResponsiveContainer width="100%" height={320}>
         <BarChart
-          data={data}
+          data={chartData}
           margin={{
             top: 20,
             right: 30,
@@ -131,7 +239,11 @@ const Barchart = () => {
             content={<CustomTooltip />}
             cursor={{ fill: "rgba(114, 16, 17, 0.05)" }}
           />
-          <Legend wrapperStyle={{ paddingTop: "20px" }} iconType="circle" />
+          <Legend
+            wrapperStyle={{ paddingTop: "20px" }}
+            iconType="circle"
+            formatter={(value) => (value === "revenue" ? "Revenue" : "Orders")}
+          />
           <Bar
             dataKey="revenue"
             fill="url(#colorRevenue)"

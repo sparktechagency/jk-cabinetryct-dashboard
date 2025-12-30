@@ -3,20 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { FaUser } from "react-icons/fa";
 import { Input, Button } from "antd";
 import { SaveOutlined, CloseOutlined } from "@ant-design/icons";
-
-const { TextArea } = Input;
+import { useGetLoggedUserQuery } from "../../redux/features/profile/profileApi";
 
 const EditProfile = () => {
   const navigate = useNavigate();
+  const { data: user } = useGetLoggedUserQuery();
+  console.log("User", user);
 
   // Initial form data - replace with actual user data from context/API
   const [formData, setFormData] = useState({
-    name: "John Doe",
-    email: "johndoe@example.com",
-    phone: "+1 234 567 8900",
-    address: "123 Main Street, City, State 12345",
-    role: "Admin",
-    branch: "Main Branch",
+    firstName: user?.firstName,
+    lastName: user?.lastName,
+    email: user?.email,
   });
 
   const handleChange = (name, value) => {
@@ -53,7 +51,7 @@ const EditProfile = () => {
                 <FaUser className="w-12 h-12 text-[#721011]" />
               </div>
               <div className="text-white">
-                <h2 className="text-2xl font-bold">{formData.name}</h2>
+                <h2 className="text-2xl font-bold">{`${formData.firstName} ${formData.lastName}`}</h2>
                 <p className="text-red-100 mt-1">{formData.role}</p>
               </div>
             </div>
@@ -65,13 +63,27 @@ const EditProfile = () => {
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
+                  First Name
                 </label>
                 <Input
                   size="large"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
+                  placeholder="Enter your first name"
+                  value={formData.firstName}
+                  onChange={(e) => handleChange("firstName", e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Last Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name
+                </label>
+                <Input
+                  size="large"
+                  placeholder="Enter your last name"
+                  value={formData.lastName}
+                  onChange={(e) => handleChange("lastName", e.target.value)}
                   required
                 />
               </div>
@@ -86,50 +98,8 @@ const EditProfile = () => {
                   type="email"
                   placeholder="Enter your email"
                   value={formData.email}
+                  disabled
                   onChange={(e) => handleChange("email", e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
-                </label>
-                <Input
-                  size="large"
-                  placeholder="Enter your phone number"
-                  value={formData.phone}
-                  onChange={(e) => handleChange("phone", e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Branch */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Branch
-                </label>
-                <Input
-                  size="large"
-                  placeholder="Enter branch name"
-                  value={formData.branch}
-                  onChange={(e) => handleChange("branch", e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Address */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address
-                </label>
-                <TextArea
-                  size="large"
-                  rows={4}
-                  placeholder="Enter your address"
-                  value={formData.address}
-                  onChange={(e) => handleChange("address", e.target.value)}
                   required
                 />
               </div>
