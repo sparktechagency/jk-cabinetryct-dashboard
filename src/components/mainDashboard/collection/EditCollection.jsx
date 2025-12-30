@@ -1,9 +1,7 @@
 import {
   ArrowLeftOutlined,
-  DeleteOutlined,
-  UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Form, Input, Spin, Upload } from "antd";
+import { Button, Form, Input, Spin } from "antd";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -13,9 +11,9 @@ import {
 import toast from "react-hot-toast";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import ManualImageUpload from "../../../components/common/ManualImageUpload";
 
 const MAX_FILES = 20; // Match backend limit
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 const EditCollection = () => {
   const [form] = Form.useForm();
@@ -78,21 +76,15 @@ const EditCollection = () => {
 
       // Add new main image
       if (newMainImage) {
-        formData.append("mainImage", newMainImage.originFileObj || newMainImage);
+        formData.append(
+          "mainImage",
+          newMainImage.originFileObj || newMainImage
+        );
       }
 
       // Add new other images
       newOtherImages.forEach((file) => {
         formData.append("images", file.originFileObj || file);
-      });
-
-      console.log("Submitting update:", {
-        existingMainImage: existingMainImage ? 1 : 0,
-        newMainImage: newMainImage ? 1 : 0,
-        existingOtherImages: existingOtherImages.length,
-        deletedImages: deletedImages.length,
-        newOtherImages: newOtherImages.length,
-        totalFinalImages: (existingMainImage ? 1 : 0) + existingOtherImages.length + newOtherImages.length,
       });
 
       const res = await updateCollection({
@@ -108,142 +100,6 @@ const EditCollection = () => {
     }
   };
 
-  const handleDeleteExistingMainImage = (imagePath) => {
-    setExistingMainImage(null);
-    setDeletedImages([...deletedImages, imagePath]);
-    toast.info("Main image marked for deletion");
-  };
-
-  const handleDeleteExistingOtherImage = (imagePath) => {
-    const remainingImages = existingOtherImages.length - 1;
-    const totalAfterDelete = remainingImages + newOtherImages.length;
-
-    if (totalAfterDelete === 0 && !existingMainImage && !newMainImage) {
-      toast.error("At least one image is required");
-      return;
-    }
-
-    setExistingOtherImages(existingOtherImages.filter((img) => img !== imagePath));
-    setDeletedImages([...deletedImages, imagePath]);
-    toast.info("Image marked for deletion");
-  };
-
-  const handleNewMainImageUpload = ({ file }) => {
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(`${file.name} exceeds 50MB limit`);
-      return;
-    }
-
-    // Check file type
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "image/heic",
-      "image/heif",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      toast.error(`${file.name} is not a supported image format`);
-      return;
-    }
-
-    setNewMainImage(file);
-  };
-
-  const handleNewOtherImagesUpload = ({ fileList: newFiles }) => {
-    const totalImages = existingOtherImages.length + newFiles.length;
-
-    if (totalImages > MAX_FILES) {
-      toast.error(`Total other images cannot exceed ${MAX_FILES}`);
-      return;
-    }
-
-    // Validate each new file size
-    const oversizedFiles = newFiles.filter((file) => file.size > MAX_FILE_SIZE);
-
-    if (oversizedFiles.length > 0) {
-      toast.error(
-        `File size should not exceed 50MB. Found ${oversizedFiles.length} oversized file(s)`
-      );
-      return;
-    }
-
-    setNewOtherImages(newFiles);
-  };
-
-  const handleRemoveNewMainImage = () => {
-    setNewMainImage(null);
-  };
-
-  const handleRemoveNewOtherImage = (file) => {
-    setNewOtherImages(newOtherImages.filter((item) => item.uid !== file.uid));
-  };
-
-  // Custom validation before upload for main image
-  const beforeMainImageUpload = (file) => {
-    // Check file size
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(`${file.name} exceeds 50MB limit`);
-      return false;
-    }
-
-    // Check file type
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "image/heic",
-      "image/heif",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      toast.error(`${file.name} is not a supported image format`);
-      return false;
-    }
-
-    return false; // Prevent auto upload
-  };
-
-  // Custom validation before upload for other images
-  const beforeOtherImagesUpload = (file) => {
-    // Check file size
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(`${file.name} exceeds 50MB limit`);
-      return false;
-    }
-
-    // Check file type
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "image/heic",
-      "image/heif",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      toast.error(`${file.name} is not a supported image format`);
-      return false;
-    }
-
-    // Check total file count
-    const totalAfterUpload = existingOtherImages.length + newOtherImages.length + 1;
-    if (totalAfterUpload > MAX_FILES) {
-      toast.error(`Total other images cannot exceed ${MAX_FILES}`);
-      return false;
-    }
-
-    return false; // Prevent auto upload
-  };
-
   if (isFetching) {
     return (
       <div className="max-w-4xl mx-auto p-6 bg-white border border-gray-200 rounded-xl flex justify-center items-center min-h-[400px]">
@@ -253,7 +109,8 @@ const EditCollection = () => {
   }
 
   const totalOtherImages = existingOtherImages.length + newOtherImages.length;
-  const totalImages = (existingMainImage ? 1 : 0) + totalOtherImages + (newMainImage ? 1 : 0);
+  const totalImages =
+    (existingMainImage ? 1 : 0) + totalOtherImages + (newMainImage ? 1 : 0);
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white border border-gray-200 rounded-xl">
@@ -280,125 +137,60 @@ const EditCollection = () => {
           </p>
         </div>
 
-        {/* Existing Main Image */}
-        {existingMainImage && (
-          <div className="mb-6">
-            <label className="block text-base font-semibold mb-3">
-              Existing Main Image
-            </label>
-            <div className="relative group">
-              <img
-                src={existingMainImage}
-                alt="Main Collection Image"
-                className="w-full h-56 object-cover rounded border"
-              />
-              <Button
-                type="primary"
-                danger
-                size="small"
-                icon={<DeleteOutlined />}
-                onClick={() => handleDeleteExistingMainImage(existingMainImage)}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                Delete
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Image Upload Section */}
+        <ManualImageUpload
+          mainImage={newMainImage || (existingMainImage ? { url: existingMainImage, name: 'existing-main-image' } : null)}
+          setMainImage={(image) => {
+            if (image && image.url && image.name === 'existing-main-image') {
+              // This is an existing image that was re-added, keep it as existing
+              setExistingMainImage(image.url);
+              setNewMainImage(null);
+            } else if (image === null) {
+              // Image was removed
+              if (existingMainImage) {
+                // If it was an existing image, add to deleted images
+                setDeletedImages(prev => [...prev, existingMainImage]);
+                setExistingMainImage(null);
+              }
+              setNewMainImage(null);
+            } else {
+              // New image uploaded
+              setNewMainImage(image);
+              // If we're replacing an existing main image with a new one,
+              // the existing one should be marked for deletion
+              if (existingMainImage && !deletedImages.includes(existingMainImage)) {
+                setDeletedImages(prev => [...prev, existingMainImage]);
+                setExistingMainImage(null);
+              }
+            }
+          }}
+          otherImages={[...existingOtherImages.map(img => ({ url: img, name: 'existing' })), ...newOtherImages]}
+          setOtherImages={(images) => {
+            // Separate existing and new images
+            const existingImgs = images.filter(img => img.url && img.name === 'existing');
+            const newImgs = images.filter(img => !img.url || !img.name || img.name !== 'existing');
 
-        {/* Existing Other Images */}
-        {existingOtherImages.length > 0 && (
-          <div className="mb-6">
-            <label className="block text-base font-semibold mb-3">
-              Existing Other Images ({existingOtherImages.length})
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {existingOtherImages.map((imagePath, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={imagePath}
-                    alt={`Collection ${index + 1}`}
-                    className="w-full h-56 object-cover rounded border"
-                  />
-                  <Button
-                    type="primary"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDeleteExistingOtherImage(imagePath)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+            // Check for deleted existing images
+            const currentExistingUrls = existingOtherImages;
+            const newExistingUrls = existingImgs.map(img => img.url);
 
-        {/* Upload New Main Image */}
-        <Form.Item
-          label={
-            <span className="text-base font-semibold">
-              Upload New Main Image
-            </span>
-          }
-        >
-          <Upload
-            listType="picture-card"
-            fileList={newMainImage ? [newMainImage] : []}
-            onChange={handleNewMainImageUpload}
-            beforeUpload={beforeMainImageUpload}
-            maxCount={1}
-            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/heic,image/heif"
-            onRemove={handleRemoveNewMainImage}
-          >
-            {!newMainImage && (
-              <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload Main Image</div>
-              </div>
-            )}
-          </Upload>
-        </Form.Item>
+            // Find which existing images were removed
+            const removedExisting = currentExistingUrls.filter(url => !newExistingUrls.includes(url));
+            if (removedExisting.length > 0) {
+              setDeletedImages(prev => [...prev, ...removedExisting]);
+            }
 
-        {/* Upload New Other Images */}
-        <Form.Item
-          label={
-            <span className="text-base font-semibold">
-              Upload New Other Images{" "}
-              {newOtherImages.length > 0 && `(${newOtherImages.length})`}
-            </span>
-          }
-        >
-          <Upload
-            listType="picture-card"
-            fileList={newOtherImages}
-            onChange={handleNewOtherImagesUpload}
-            beforeUpload={beforeOtherImagesUpload}
-            multiple
-            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/heic,image/heif"
-            onRemove={handleRemoveNewOtherImage}
-            maxCount={MAX_FILES}
-          >
-            {totalOtherImages >= MAX_FILES ? null : (
-              <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload Images</div>
-              </div>
-            )}
-          </Upload>
-          <div className="text-xs text-gray-500 mt-2">
-            Maximum {MAX_FILES} other images total. Maximum file size: 50MB. Supported
-            formats: JPG, PNG, GIF, WEBP, HEIC, HEIF
-          </div>
-          {totalOtherImages >= MAX_FILES && (
-            <div className="text-sm text-orange-600 mt-2">
-              ⚠️ Maximum image limit reached. Delete existing images to add new
-              ones.
-            </div>
-          )}
-        </Form.Item>
+            setExistingOtherImages(newExistingUrls);
+            setNewOtherImages(newImgs);
+          }}
+          deletedImages={deletedImages}
+          setDeletedImages={setDeletedImages}
+          maxOtherImages={MAX_FILES}
+          showMainImage={true}
+          showOtherImages={true}
+          labelMainImage="Upload Main Image"
+          labelOtherImages="Upload Other Images"
+        />
 
         {/* Code and Color Name */}
         <div className="grid grid-cols-2 gap-4">

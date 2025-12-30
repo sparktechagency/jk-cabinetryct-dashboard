@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Form, Input, Button, Upload } from "antd";
-import { UploadOutlined, ArrowLeftOutlined } from "@ant-design/icons";
+import { Form, Input, Button } from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAddcabinetryMutation } from "../../../redux/features/cabinetry/cabinetryApi";
 import toast from "react-hot-toast";
 import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css"; 
+import "react-quill/dist/quill.snow.css";
+import ManualImageUpload from "../../../components/common/ManualImageUpload";
+
 const AddCabinetry = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -13,6 +15,7 @@ const AddCabinetry = () => {
   const [addCabinetry, { isLoading }] = useAddcabinetryMutation();
   const [mainImageFile, setMainImageFile] = useState(null);
   const [otherImages, setOtherImages] = useState([]);
+  const [deletedImages, setDeletedImages] = useState([]);
 
   const onFinish = async (values) => {
     if (!mainImageFile) {
@@ -37,31 +40,21 @@ const AddCabinetry = () => {
         formData.append("images", file.originFileObj || file);
       });
 
+      // Append deleted images if any
+      if (deletedImages.length > 0) {
+        formData.append("deletedImages", JSON.stringify(deletedImages));
+      }
+
       const res = await addCabinetry(formData).unwrap();
       toast.success(res?.message || "Cabinetry added successfully");
       form.resetFields();
       setMainImageFile(null);
       setOtherImages([]);
+      setDeletedImages([]);
       navigate("/cabinetry");
     } catch (error) {
       toast.error(error?.data?.message || "Failed to add cabinetry");
     }
-  };
-
-  const handleMainImageUpload = ({ file }) => {
-    setMainImageFile(file);
-  };
-
-  const handleOtherImagesUpload = ({ fileList: newFileList }) => {
-    setOtherImages(newFileList);
-  };
-
-  const handleRemoveMainImage = () => {
-    setMainImageFile(null);
-  };
-
-  const handleRemoveOtherImage = (file) => {
-    setOtherImages(otherImages.filter((item) => item.uid !== file.uid));
   };
 
   return (
@@ -79,60 +72,20 @@ const AddCabinetry = () => {
       </div>
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        {/* Upload Main Image */}
-        <Form.Item
-          label={
-            <span className="text-base font-semibold">
-              Upload Main Image <span className="text-red-500">*</span>
-            </span>
-          }
-        >
-          <Upload
-            listType="picture-card"
-            fileList={mainImageFile ? [mainImageFile] : []}
-            onChange={handleMainImageUpload}
-            beforeUpload={() => false}
-            maxCount={1}
-            accept="image/*"
-            onRemove={handleRemoveMainImage}
-          >
-            {!mainImageFile && (
-              <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload Main Image</div>
-              </div>
-            )}
-          </Upload>
-        </Form.Item>
-
-        {/* Upload Other Images */}
-        <Form.Item
-          label={
-            <span className="text-base font-semibold">
-              Upload Other Images
-            </span>
-          }
-        >
-          <Upload
-            listType="picture-card"
-            fileList={otherImages}
-            onChange={handleOtherImagesUpload}
-            beforeUpload={() => false}
-            multiple
-            accept="image/*"
-            onRemove={handleRemoveOtherImage}
-          >
-            {otherImages.length >= 8 ? null : (
-              <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload Images</div>
-              </div>
-            )}
-          </Upload>
-          <div className="text-xs text-gray-500 mt-2">
-            You can upload up to 8 additional images. Supported formats: JPG, PNG, JPEG
-          </div>
-        </Form.Item>
+        {/* Image Upload Section */}
+        <ManualImageUpload
+          mainImage={mainImageFile}
+          setMainImage={setMainImageFile}
+          otherImages={otherImages}
+          setOtherImages={setOtherImages}
+          deletedImages={deletedImages}
+          setDeletedImages={setDeletedImages}
+          maxOtherImages={8}
+          showMainImage={true}
+          showOtherImages={true}
+          labelMainImage="Upload Main Image *"
+          labelOtherImages="Upload Other Images"
+        />
 
         {/* Code and Color Name */}
         <div className="grid grid-cols-2 gap-4">

@@ -1,9 +1,7 @@
 import {
   ArrowLeftOutlined,
-  DeleteOutlined,
-  UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Form, Input, Spin, Upload } from "antd";
+import { Button, Form, Input, Spin } from "antd";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -13,6 +11,7 @@ import {
 import toast from "react-hot-toast";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css"; // Quill styles
+import ManualImageUpload from "../../../components/common/ManualImageUpload";
 
 const EditCabinetry = () => {
   const [form] = Form.useForm();
@@ -81,32 +80,6 @@ const EditCabinetry = () => {
     }
   };
 
-  const handleDeleteExistingMainImage = (imagePath) => {
-    setExistingMainImage(null);
-    setDeletedImages([...deletedImages, imagePath]);
-  };
-
-  const handleDeleteExistingOtherImage = (imagePath) => {
-    setExistingOtherImages(existingOtherImages.filter((img) => img !== imagePath));
-    setDeletedImages([...deletedImages, imagePath]);
-  };
-
-  const handleNewMainImageUpload = ({ file }) => {
-    setNewMainImage(file);
-  };
-
-  const handleNewOtherImagesUpload = ({ fileList: newFiles }) => {
-    setNewOtherImages(newFiles);
-  };
-
-  const handleRemoveNewMainImage = () => {
-    setNewMainImage(null);
-  };
-
-  const handleRemoveNewOtherImage = (file) => {
-    setNewOtherImages(newOtherImages.filter((item) => item.uid !== file.uid));
-  };
-
   if (isFetching) {
     return (
       <div className="max-w-4xl mx-auto p-6 bg-white border border-gray-200 rounded-xl flex justify-center items-center min-h-[400px]">
@@ -128,112 +101,60 @@ const EditCabinetry = () => {
       </div>
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        {/* Existing Main Image */}
-        {existingMainImage && (
-          <div className="mb-6">
-            <label className="block text-base font-semibold mb-3">
-              Existing Main Image
-            </label>
-            <div className="relative group">
-              <img
-                src={existingMainImage}
-                alt="Main Cabinet Image"
-                className="w-full h-56 object-cover rounded border"
-              />
-              <Button
-                type="primary"
-                danger
-                size="small"
-                icon={<DeleteOutlined />}
-                onClick={() => handleDeleteExistingMainImage(existingMainImage)}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                Delete
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Image Upload Section */}
+        <ManualImageUpload
+          mainImage={newMainImage || (existingMainImage ? { url: existingMainImage, name: 'existing-main-image' } : null)}
+          setMainImage={(image) => {
+            if (image && image.url && image.name === 'existing-main-image') {
+              // This is an existing image that was re-added, keep it as existing
+              setExistingMainImage(image.url);
+              setNewMainImage(null);
+            } else if (image === null) {
+              // Image was removed
+              if (existingMainImage) {
+                // If it was an existing image, add to deleted images
+                setDeletedImages(prev => [...prev, existingMainImage]);
+                setExistingMainImage(null);
+              }
+              setNewMainImage(null);
+            } else {
+              // New image uploaded
+              setNewMainImage(image);
+              // If we're replacing an existing main image with a new one,
+              // the existing one should be marked for deletion
+              if (existingMainImage && !deletedImages.includes(existingMainImage)) {
+                setDeletedImages(prev => [...prev, existingMainImage]);
+                setExistingMainImage(null);
+              }
+            }
+          }}
+          otherImages={[...existingOtherImages.map(img => ({ url: img, name: 'existing' })), ...newOtherImages]}
+          setOtherImages={(images) => {
+            // Separate existing and new images
+            const existingImgs = images.filter(img => img.url && img.name === 'existing');
+            const newImgs = images.filter(img => !img.url || !img.name || img.name !== 'existing');
 
-        {/* Existing Other Images */}
-        {existingOtherImages.length > 0 && (
-          <div className="mb-6">
-            <label className="block text-base font-semibold mb-3">
-              Existing Other Images
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {existingOtherImages.map((imagePath, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={imagePath}
-                    alt={`Cabinet ${index + 1}`}
-                    className="w-full h-56 object-cover rounded border"
-                  />
-                  <Button
-                    type="primary"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDeleteExistingOtherImage(imagePath)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+            // Check for deleted existing images
+            const currentExistingUrls = existingOtherImages;
+            const newExistingUrls = existingImgs.map(img => img.url);
 
-        {/* Upload New Main Image */}
-        <Form.Item
-          label={
-            <span className="text-base font-semibold">Upload New Main Image</span>
-          }
-        >
-          <Upload
-            listType="picture-card"
-            fileList={newMainImage ? [newMainImage] : []}
-            onChange={handleNewMainImageUpload}
-            beforeUpload={() => false}
-            maxCount={1}
-            accept="image/*"
-            onRemove={handleRemoveNewMainImage}
-          >
-            {!newMainImage && (
-              <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload Main Image</div>
-              </div>
-            )}
-          </Upload>
-        </Form.Item>
+            // Find which existing images were removed
+            const removedExisting = currentExistingUrls.filter(url => !newExistingUrls.includes(url));
+            if (removedExisting.length > 0) {
+              setDeletedImages(prev => [...prev, ...removedExisting]);
+            }
 
-        {/* Upload New Other Images */}
-        <Form.Item
-          label={
-            <span className="text-base font-semibold">Upload New Other Images</span>
-          }
-        >
-          <Upload
-            listType="picture-card"
-            fileList={newOtherImages}
-            onChange={handleNewOtherImagesUpload}
-            beforeUpload={() => false}
-            multiple
-            accept="image/*"
-            onRemove={handleRemoveNewOtherImage}
-          >
-            {existingOtherImages.length + newOtherImages.length >= 8 ? null : (
-              <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload Images</div>
-              </div>
-            )}
-          </Upload>
-          <div className="text-xs text-gray-500 mt-2">
-            Total images (existing + new) should not exceed 8
-          </div>
-        </Form.Item>
+            setExistingOtherImages(newExistingUrls);
+            setNewOtherImages(newImgs);
+          }}
+          deletedImages={deletedImages}
+          setDeletedImages={setDeletedImages}
+          maxOtherImages={8}
+          showMainImage={true}
+          showOtherImages={true}
+          labelMainImage="Upload Main Image"
+          labelOtherImages="Upload Other Images"
+        />
 
         {/* Code and Color Name */}
         <div className="grid grid-cols-2 gap-4">

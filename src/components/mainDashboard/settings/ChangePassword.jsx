@@ -23,7 +23,7 @@ const ChangePassword = () => {
       toast.success("Password changed successfully!");
       form.resetFields();
       setTimeout(() => {
-        navigate("/super-admin/settings"); // Navigate back to settings
+        navigate("/settings"); // Navigate back to settings
       }, 1000);
     } catch (error) {
       console.error("Error changing password:", error);
