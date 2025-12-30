@@ -6,7 +6,7 @@ const analyticsApi = baseApi.injectEndpoints({
       query: () => "/analytics/dashboard-overview",
     }),
     getOrderStatics: builder.query({
-      query: ({ period, year }) => `/analytics/order-statics?period=${period}&year=${year}`,
+      query: ({ period, year }) => `/analytics/order-statistics?period=${period}&year=${year}`,
     }),
     getRecentOrders: builder.query({
       query: () => "/analytics/recent-orders",

@@ -66,11 +66,6 @@ const Barchart = () => {
       orders: item.count,
     })) || [];
 
-  // Calculate total and average revenue
-  const totalRevenue = chartData.reduce((sum, item) => sum + item.revenue, 0);
-  const avgRevenue =
-    chartData.length > 0 ? (totalRevenue / chartData.length).toFixed(0) : 0;
-
   // Refetch data when selected year changes
   useEffect(() => {
     refetch();
@@ -98,17 +93,14 @@ const Barchart = () => {
             className="w-32"
             size="large"
             onChange={handleChange}
-            options={[
-              { value: currentYear.toString(), label: currentYear.toString() },
-              {
-                value: (currentYear - 1).toString(),
-                label: (currentYear - 1).toString(),
-              },
-              {
-                value: (currentYear - 2).toString(),
-                label: (currentYear - 2).toString(),
-              },
-            ]}
+            options={() => {
+              const years = [];
+              for (let i = -6; i <= 6; i++) {
+                const year = currentYear + i;
+                years.push({ value: year.toString(), label: year.toString() });
+              }
+              return years;
+            }}()
           />
         </div>
         <div className="flex justify-center items-center h-80">
@@ -140,17 +132,14 @@ const Barchart = () => {
             className="w-32"
             size="large"
             onChange={handleChange}
-            options={[
-              { value: currentYear.toString(), label: currentYear.toString() },
-              {
-                value: (currentYear - 1).toString(),
-                label: (currentYear - 1).toString(),
-              },
-              {
-                value: (currentYear - 2).toString(),
-                label: (currentYear - 2).toString(),
-              },
-            ]}
+            options={() => {
+              const years = [];
+              for (let i = -6; i <= 6; i++) {
+                const year = currentYear + i;
+                years.push({ value: year.toString(), label: year.toString() });
+              }
+              return years;
+            }}()
           />
         </div>
         <div className="flex justify-center items-center h-80">
@@ -180,26 +169,19 @@ const Barchart = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm text-gray-500">Avg. Monthly Revenue</p>
-            <p className="text-lg font-bold text-[#721011]">${avgRevenue}</p>
-          </div>
           <Select
             value={selectedYear}
             className="w-32"
             size="large"
             onChange={handleChange}
-            options={[
-              { value: currentYear.toString(), label: currentYear.toString() },
-              {
-                value: (currentYear - 1).toString(),
-                label: (currentYear - 1).toString(),
-              },
-              {
-                value: (currentYear - 2).toString(),
-                label: (currentYear - 2).toString(),
-              },
-            ]}
+            options={() => {
+              const years = [];
+              for (let i = -6; i <= 6; i++) {
+                const year = currentYear + i;
+                years.push({ value: year.toString(), label: year.toString() });
+              }
+              return years;
+            }}()
           />
         </div>
       </div>
