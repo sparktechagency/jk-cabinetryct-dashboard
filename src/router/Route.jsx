@@ -29,7 +29,6 @@ import StockItemDetails from "../components/mainDashboard/stockItem/StockItemDet
 import AddParts from "../components/mainDashboard/stockItem/AddParts";
 import EditParts from "../components/mainDashboard/stockItem/EditParts";
 import DashboardHome from "../components/mainDashboard/dashboard/DashboardHome";
-import TransactionPage from "../components/mainDashboard/transaction/TransactionPage";
 import CollectionList from "../components/mainDashboard/collection/CollectionList";
 import AddCollection from "../components/mainDashboard/collection/AddCollection";
 import EditCollection from "../components/mainDashboard/collection/EditCollection";
@@ -113,10 +112,6 @@ export const router = createBrowserRouter([
         element: <Order />,
       },
       {
-        path: "transaction",
-        element: <TransactionPage />,
-      },
-      {
         path: "/inbox",
         element: <Inbox />,
       },
@@ -176,62 +171,4 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  // {
-  //   path: "/super-admin",
-  //   element: (
-  //     <SuperAdminPrivetRoute>
-  //       <SuperAdminLayout />
-  //     </SuperAdminPrivetRoute>
-  //   ),
-  //   children: [
-  //     {
-  //       index: true,
-  //       element: <SuperAdmin />,
-  //     },
-  //     {
-  //       path: "branch-admins/:branchId",
-  //       element: <BranchAdminSupportingAdmins />,
-  //     },
-  //     {
-  //       path: "profile",
-  //       element: <SuperAdminProfile />,
-  //     },
-  //     {
-  //       path: "editprofile",
-  //       element: <SuperAdminEditProfile />,
-  //     },
-  //     {
-  //       path: "settings",
-  //       element: <SuperAdminSettings />,
-  //     },
-  //     {
-  //       path: "settings/change-password",
-  //       element: <SuperAdminChangePassword />,
-  //     },
-  //     {
-  //       path: "settings/privacy-policy",
-  //       element: <PrivacyPolicy />,
-  //     },
-  //     {
-  //       path: "settings/editprivacy-policy",
-  //       element: <EditPrivacy />,
-  //     },
-  //     {
-  //       path: "settings/term-condition",
-  //       element: <TermCondition />,
-  //     },
-  //     {
-  //       path: "settings/edit-termcondition",
-  //       element: <EditTermCondition />,
-  //     },
-  //     {
-  //       path: "settings/about",
-  //       element: <About />,
-  //     },
-  //     {
-  //       path: "settings/edit-about",
-  //       element: <EditAbout />,
-  //     },
-  //   ],
-  // },
 ]);

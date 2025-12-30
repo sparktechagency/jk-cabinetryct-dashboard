@@ -8,11 +8,9 @@ import {
 } from "@ant-design/icons";
 import {
   Button,
-  Col,
   Dropdown,
   Input,
   Modal,
-  Row,
   Select,
   Space,
   Table,
@@ -191,7 +189,11 @@ const Users = () => {
     {
       title: "Business Type",
       key: "businessType",
-      render: (_, record) => <Tag color="blue" className="uppercase">{record.businessType}</Tag>,
+      render: (_, record) => (
+        <Tag color="blue" className="uppercase">
+          {record.businessType}
+        </Tag>
+      ),
     },
     {
       title: "Status",
@@ -270,44 +272,36 @@ const Users = () => {
 
   return (
     <div className="w-full p-6 bg-white border rounded-xl">
-      <Row justify="space-between" align="middle" className="mb-6">
-        <Col>
-          <h2 className="text-2xl font-semibold text-primary">User list</h2>
-        </Col>
-        <Col>
-          <Row gutter={16} align="middle">
-            <Col>
-              <Select
-                placeholder="Filter by status"
-                style={{ width: 150 }}
-                allowClear
-                onChange={handleStatusFilter}
-                value={statusFilter}
-              >
-                <Select.Option value="">All</Select.Option>
-                <Select.Option value="unverified">Unverified</Select.Option>
-                <Select.Option value="verified">Verified</Select.Option>
-                <Select.Option value="blocked">Blocked</Select.Option>
-              </Select>
-            </Col>
-            <Col>
-              <Input
-                placeholder="Search users..."
-                prefix={<SearchOutlined />}
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                style={{ width: 200 }}
-              />
-            </Col>
-          </Row>
-        </Col>
-      </Row>
+      <div className="w-full flex flex-col md:flex-row gap-5 justify-between items-start md:items-center  mb-6">
+        <h2 className="text-2xl font-semibold text-primary">User list</h2>
+        <div className="flex justify-center gap-5">
+          <Select
+            placeholder="Filter by status"
+            style={{ width: 150 }}
+            allowClear
+            onChange={handleStatusFilter}
+            value={statusFilter}
+          >
+            <Select.Option value="">All</Select.Option>
+            <Select.Option value="unverified">Unverified</Select.Option>
+            <Select.Option value="verified">Verified</Select.Option>
+            <Select.Option value="blocked">Blocked</Select.Option>
+          </Select>
+          <Input
+            placeholder="Search users..."
+            prefix={<SearchOutlined />}
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+        </div>
+      </div>
       <Table
         columns={columns}
         dataSource={users}
         loading={isLoading}
         pagination={paginationConfig}
         rowKey="key"
+        scroll={{ x: "max-content" }}
       />
     </div>
   );

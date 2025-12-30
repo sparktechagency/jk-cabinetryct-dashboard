@@ -53,8 +53,8 @@ const CollectionList = () => {
 
   return (
     <div className="w-full p-6 bg-white border rounded-xl">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-3">
+      <div className="w-full flex flex-col md:flex-row gap-6 justify-between items-center mb-6">
+        <div className="flex items-start gap-3">
           <Button
             type="text"
             icon={<ArrowLeftOutlined />}

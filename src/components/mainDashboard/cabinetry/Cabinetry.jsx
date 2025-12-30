@@ -124,7 +124,7 @@ const Cabinetry = () => {
 
   return (
     <div className="w-full p-6 bg-white border rounded-xl">
-      <div className="flex justify-between items-center mb-6">
+      <div className="w-full flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           <Button
             type="text"

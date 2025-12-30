@@ -100,7 +100,7 @@ const Barchart = () => {
                 years.push({ value: year.toString(), label: year.toString() });
               }
               return years;
-            }}()
+            }}
           />
         </div>
         <div className="flex justify-center items-center h-80">
@@ -139,7 +139,7 @@ const Barchart = () => {
                 years.push({ value: year.toString(), label: year.toString() });
               }
               return years;
-            }}()
+            }}
           />
         </div>
         <div className="flex justify-center items-center h-80">
@@ -181,7 +181,7 @@ const Barchart = () => {
                 years.push({ value: year.toString(), label: year.toString() });
               }
               return years;
-            }}()
+            }}
           />
         </div>
       </div>

@@ -12,7 +12,7 @@ const ActiveLink = ({ name, icon, path }) => {
       }
     >
       {icon}
-      <span className="hidden ml-2 sm:block">{name}</span>
+      <span className="ml-2 sm:block">{name}</span>
     </NavLink>
   );
 };
