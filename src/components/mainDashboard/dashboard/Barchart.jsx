@@ -28,7 +28,9 @@ const CustomTooltip = ({ active, payload, label }) => {
             <p className="text-sm text-gray-700">
               {item.dataKey === "revenue" ? "Revenue" : "Orders"}:{" "}
               <span className="font-semibold">
-                {item.dataKey === "revenue" ? `$${item.value}` : item.value}
+                {item.dataKey === "revenue"
+                  ? `$${item.value.toLocaleString()}`
+                  : item.value}
               </span>
             </p>
           </div>
@@ -40,14 +42,24 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const Barchart = () => {
-  const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear(); // e.g., 2025
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
 
   const handleChange = (value) => {
     setSelectedYear(value);
   };
 
-  // Fetch order statistics data from API
+  // Generate year options: current year - 6 to current year + 6
+  const yearOptions = [];
+  for (let i = -6; i <= 6; i++) {
+    const year = currentYear + i;
+    yearOptions.push({
+      value: year.toString(),
+      label: year.toString(),
+    });
+  }
+
+  // Fetch data based on selected year
   const {
     data: orderData,
     isLoading,
@@ -58,19 +70,20 @@ const Barchart = () => {
     year: parseInt(selectedYear),
   });
 
-  // Transform API data to match chart format
-  const chartData =
-    orderData?.data?.map((item) => ({
-      month: item.period,
-      revenue: item.revenue,
-      orders: item.count,
-    })) || [];
-
-  // Refetch data when selected year changes
+  // Refetch when year changes
   useEffect(() => {
     refetch();
   }, [selectedYear, refetch]);
 
+  // Transform API response to chart format
+  const chartData =
+    orderData?.data?.map((item) => ({
+      month: item.period, // assuming period is like "January", "Feb", etc.
+      revenue: item.revenue,
+      orders: item.count,
+    })) || [];
+
+  // Loading state
   if (isLoading) {
     return (
       <div className="mt-8 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -81,7 +94,7 @@ const Barchart = () => {
             </div>
             <div>
               <h1 className="font-bold text-xl text-[#721011]">
-                Revenue Overview
+                Order and Revenue Statistics
               </h1>
               <p className="text-sm text-gray-500">
                 Monthly revenue and orders tracking
@@ -93,14 +106,7 @@ const Barchart = () => {
             className="w-32"
             size="large"
             onChange={handleChange}
-            options={() => {
-              const years = [];
-              for (let i = -6; i <= 6; i++) {
-                const year = currentYear + i;
-                years.push({ value: year.toString(), label: year.toString() });
-              }
-              return years;
-            }}
+            options={yearOptions}
           />
         </div>
         <div className="flex justify-center items-center h-80">
@@ -110,6 +116,7 @@ const Barchart = () => {
     );
   }
 
+  // Error state
   if (isError) {
     return (
       <div className="mt-8 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -120,7 +127,7 @@ const Barchart = () => {
             </div>
             <div>
               <h1 className="font-bold text-xl text-[#721011]">
-                Revenue Overview
+                Order and Revenue Statistics
               </h1>
               <p className="text-sm text-gray-500">
                 Monthly revenue and orders tracking
@@ -132,14 +139,7 @@ const Barchart = () => {
             className="w-32"
             size="large"
             onChange={handleChange}
-            options={() => {
-              const years = [];
-              for (let i = -6; i <= 6; i++) {
-                const year = currentYear + i;
-                years.push({ value: year.toString(), label: year.toString() });
-              }
-              return years;
-            }}
+            options={yearOptions}
           />
         </div>
         <div className="flex justify-center items-center h-80">
@@ -151,6 +151,7 @@ const Barchart = () => {
     );
   }
 
+  // Main render
   return (
     <div className="mt-8 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
       {/* Header */}
@@ -161,41 +162,28 @@ const Barchart = () => {
           </div>
           <div>
             <h1 className="font-bold text-xl text-[#721011]">
-              Order and Revenue Statics
+              Order and Revenue Statistics
             </h1>
             <p className="text-sm text-gray-500">
               Monthly revenue and orders tracking
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <Select
-            value={selectedYear}
-            className="w-32"
-            size="large"
-            onChange={handleChange}
-            options={() => {
-              const years = [];
-              for (let i = -6; i <= 6; i++) {
-                const year = currentYear + i;
-                years.push({ value: year.toString(), label: year.toString() });
-              }
-              return years;
-            }}
-          />
-        </div>
+
+        <Select
+          value={selectedYear}
+          className="w-32"
+          size="large"
+          onChange={handleChange}
+          options={yearOptions}
+        />
       </div>
 
       {/* Chart */}
       <ResponsiveContainer width="100%" height={320}>
         <BarChart
           data={chartData}
-          margin={{
-            top: 10,
-            right: 10,
-            left: 10,
-            bottom: 5,
-          }}
+          margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
         >
           <defs>
             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -207,6 +195,7 @@ const Barchart = () => {
               <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.3} />
             </linearGradient>
           </defs>
+
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
             dataKey="month"

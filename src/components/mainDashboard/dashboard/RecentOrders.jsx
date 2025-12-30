@@ -20,7 +20,7 @@ const RecentOrders = () => {
   const { data: recentOrdersData, isLoading, isError } = useGetRecentOrdersQuery();
 
   // Transform API data to match table format
-  const transactions = recentOrdersData?.data?.map((order, index) => ({
+  const transactions = recentOrdersData?.data?.map((order) => ({
     key: order?._id,
     transactionId: order?.orderNumber,
     customerName: `${order?.userId.firstName} ${order?.userId.lastName}`,
