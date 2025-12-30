@@ -124,15 +124,17 @@ const Cabinetry = () => {
 
   return (
     <div className="w-full p-6 bg-white border rounded-xl">
-      <div className="w-full flex justify-between items-center mb-6">
-        <div className="flex items-center gap-3">
+      <div className="w-full flex  flex-col md:flex-row gap-5 justify-between items-center mb-10">
+        <div className="flex items-center gap-1">
           <Button
             type="text"
             icon={<ArrowLeftOutlined />}
             onClick={() => navigate("/users")}
             className="text-gray-600 hover:text-primary"
           />
-          <h2 className="text-2xl font-semibold text-primary">Cabinet list</h2>
+          <h2 className="text-xl md:text-2xl font-semibold text-primary">
+            Cabinet list
+          </h2>
         </div>
         <Button
           type="primary"

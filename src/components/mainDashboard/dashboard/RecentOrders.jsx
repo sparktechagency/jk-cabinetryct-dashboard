@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { Table, Modal, Tag, Avatar, Button, Divider } from "antd";
 import {
-  EyeOutlined,
+  ArrowRightOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  EyeOutlined,
   MailOutlined,
   PhoneOutlined,
-  ArrowRightOutlined,
 } from "@ant-design/icons";
+import { Avatar, Button, Divider, Modal, Table, Tag } from "antd";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
-const Transaction = () => {
+const RecentOrders = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
@@ -80,8 +80,16 @@ const Transaction = () => {
 
   const getStatusConfig = (status) => {
     const config = {
-      completed: { text: "Completed", color: "green", icon: <CheckCircleOutlined /> },
-      pending: { text: "Pending", color: "orange", icon: <ClockCircleOutlined /> },
+      completed: {
+        text: "Completed",
+        color: "green",
+        icon: <CheckCircleOutlined />,
+      },
+      pending: {
+        text: "Pending",
+        color: "orange",
+        icon: <ClockCircleOutlined />,
+      },
       failed: { text: "Failed", color: "red", icon: <CloseCircleOutlined /> },
     };
     return config[status] || { text: "Unknown", color: "default" };
@@ -149,12 +157,10 @@ const Transaction = () => {
     <div className="mt-8 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="font-bold text-xl text-[#721011]">
-            Recent Transactions
-          </h1>
-          <p className="text-sm text-gray-500">Latest payment activities</p>
+          <h1 className="font-bold text-xl text-[#721011]">Recent Orders</h1>
+          <p className="text-gray-600 text-sm">Manage your recent orders</p>
         </div>
-        <Link to="/transaction">
+        <Link to="/order">
           <Button
             type="primary"
             icon={<ArrowRightOutlined />}
@@ -169,6 +175,7 @@ const Transaction = () => {
         columns={columns}
         pagination={false}
         rowClassName="hover:bg-gray-50"
+        scroll={{ x: "max-content" }}
       />
 
       {/* Transaction Details Modal */}
@@ -213,10 +220,7 @@ const Transaction = () => {
               </h3>
               <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                 <div className="flex items-center gap-3">
-                  <Avatar
-                    size={48}
-                    style={{ backgroundColor: "#721011" }}
-                  >
+                  <Avatar size={48} style={{ backgroundColor: "#721011" }}>
                     {selectedTransaction.customerAvatar}
                   </Avatar>
                   <div>
@@ -267,4 +271,4 @@ const Transaction = () => {
   );
 };
 
-export default Transaction;
+export default RecentOrders;

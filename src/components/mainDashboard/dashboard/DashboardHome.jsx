@@ -1,13 +1,13 @@
-import Card from "./Card";
 import Barchart from "./Barchart";
-import Transaction from "./Transaction";
+import Card from "./Card";
+import RecentOrders from "./RecentOrders";
 
 const DashboardHome = () => {
   return (
     <div>
       <Card/>
       <Barchart />
-      <Transaction />
+      <RecentOrders />
     </div>
   );
 };

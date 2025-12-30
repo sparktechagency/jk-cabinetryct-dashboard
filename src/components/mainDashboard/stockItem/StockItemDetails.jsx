@@ -4,15 +4,7 @@ import {
   EditOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import {
-  Button,
-  Card,
-  Form,
-  Input,
-  Modal,
-  Popconfirm,
-  Spin,
-} from "antd";
+import { Button, Card, Form, Input, Modal, Popconfirm, Spin } from "antd";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -137,15 +129,15 @@ const StockItemDetails = () => {
   return (
     <div className="w-full min-h-screen bg-white rounded-xl border p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-3">
+      <div className="w-full flex flex-col md:flex-row gap-6 justify-between items-center mb-10">
+        <div className="flex items-center gap-1">
           <Button
             type="text"
             icon={<ArrowLeftOutlined />}
             onClick={() => navigate("/stock-items")}
             className="text-gray-600 hover:text-primary"
           />
-          <h1 className="text-2xl font-bold text-primary">
+          <h1 className="text-xl md:text-2xl font-bold text-primary">
             {stockItemName || "Stock Item Details"}
           </h1>
         </div>

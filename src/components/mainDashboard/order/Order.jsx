@@ -283,7 +283,7 @@ const Order = () => {
   return (
     <>
       <div className="w-full p-6 bg-white border rounded-xl shadow-sm">
-        <div className="flex justify-between items-center mb-6">
+        <div className="w-full flex flex-col md:flex-row gap-6 justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-primary">Order List</h2>
           <Input
             placeholder="Search orders..."
@@ -296,7 +296,7 @@ const Order = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-8 border-b mb-6">
+        <div className="flex gap-8 overflow-x-auto border-b mb-6">
           {[
             "all",
             "pending",
@@ -331,6 +331,7 @@ const Order = () => {
               total: ordersData?.meta?.totalResult,
             }}
             rowClassName="hover:bg-gray-50"
+            scroll={{ x: "max-content" }}
           />
         </Spin>
       </div>

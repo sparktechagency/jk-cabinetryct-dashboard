@@ -191,9 +191,9 @@ const Barchart = () => {
         <BarChart
           data={chartData}
           margin={{
-            top: 20,
-            right: 30,
-            left: 20,
+            top: 10,
+            right: 10,
+            left: 10,
             bottom: 5,
           }}
         >
